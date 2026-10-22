@@ -1,12 +1,14 @@
+> Actualización de alcance — 22/10/2026: por pedido del responsable se deja sin efecto el guardado offline. La etapa 3A no es requisito para continuar. El desarrollo sigue con módulos online, comenzando por clientes (docs/tasks/004-clientes.md). Las referencias offline siguientes son antecedentes históricos, no requisitos vigentes.
+
 # Taller 2.0 — Galante
 
 Reemplazo gradual del sistema de gestión del taller. Repositorio inicializado en la rama `main` el 21/10/2026.
 
 ## Estado
 
-Base ejecutable creada: ingreso con Auth.js, portada protegida, roles, revocación, migraciones PostgreSQL y pruebas. Todavía no implementa los módulos del taller ni guardado offline. No usar para operar el taller.
+Base ejecutable creada: ingreso con Auth.js, portada protegida, roles, revocación, migraciones PostgreSQL y pruebas. Incluye el primer módulo online de clientes: listado, búsqueda, ficha, alta y edición. Órdenes y finanzas siguen pendientes. No usar para operar el taller.
 
-Next.js App Router + TypeScript, Tailwind CSS + componentes shadcn/ui, Auth.js Credentials/JWT, Zod y Drizzle ORM con `pg`. Versiones exactas y lockfile incluidos. PostgreSQL local de desarrollo preparado; la conexión a Neon se configurará por ambiente. La PWA con IndexedDB y sincronización versionada corresponde a la siguiente etapa.
+Next.js App Router + TypeScript, Tailwind CSS + componentes shadcn/ui, Auth.js Credentials/JWT, Zod y Drizzle ORM con `pg`. Versiones exactas y lockfile incluidos. PostgreSQL local de desarrollo preparado; la conexión a Neon se configurará por ambiente. El sistema requiere conexión para consultar y guardar datos.
 
 ## Abrir la app
 

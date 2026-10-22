@@ -8,6 +8,13 @@
       "when": 1792610348265,
       "tag": "0000_lame_shotgun",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792694481285,
+      "tag": "0001_empty_hex",
+      "breakpoints": true
     }
   ]
 }

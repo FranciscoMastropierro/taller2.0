@@ -1,3 +1,5 @@
+> Actualización de alcance — 22/10/2026: por pedido del responsable se deja sin efecto el guardado offline. La etapa 3A no es requisito para continuar. El desarrollo sigue con módulos online, comenzando por clientes (docs/tasks/004-clientes.md). Las referencias offline siguientes son antecedentes históricos, no requisitos vigentes.
+
 # Contrato de reemplazo — etapa 1
 
 Fecha: 21/10/2026. Base: plan rector v1.1 y reglas confirmadas por el responsable. Este contrato fija alcance; no acredita aceptación operativa ni implementación.
