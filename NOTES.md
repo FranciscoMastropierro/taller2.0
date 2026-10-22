@@ -1,5 +1,12 @@
 # Decisiones — 21/10/2026
 
+## Clientes — 22/10/2026
+
+- Pedido vigente: retirar guardado offline y avanzar por módulos online; etapa 3A deja de ser requisito. Los planes originales quedan como antecedentes.
+- Primera entrega de clientes: nombre obligatorio; documento, teléfono, email, dirección y notas opcionales. Sin inferir datos fiscales ni fusionar personas por nombre/documento.
+- Código interno autogenerado independiente del legado; UUID estable y versión para detectar edición concurrente. Sin borrado. Consulta según work:read; escritura restringida a customers:write.
+- Formularios controlados conservan propuestas ante validación/conflicto. No se guarda información privada en almacenamiento del navegador.
+
 - Alcance de esta entrega: completar etapa 1 y preparar etapa 3; etapa 2 depende de recuperar fuente actual. Resolución: desglose del plan, no bloqueo del desarrollo sintético.
 - Repositorio: sólo NuevoSoft, rama main, sin fuentes privadas ni dependencias instaladas. Resolución: cumple pedido explícito del responsable.
 - El plan dice «esta tarea entrega documentación» porque fue redactado antes del pedido de ejecución. Se conserva como antecedente versionado y el README registra la autorización posterior; no se interpreta como prohibición permanente de implementar.

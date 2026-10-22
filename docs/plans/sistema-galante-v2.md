@@ -1,3 +1,5 @@
+> Actualización de alcance — 22/10/2026: por pedido del responsable se deja sin efecto el guardado offline. La etapa 3A no es requisito para continuar. El desarrollo sigue con módulos online, comenzando por clientes (docs/tasks/004-clientes.md). Las referencias offline siguientes son antecedentes históricos, no requisitos vigentes.
+
 # Sistema de gestión Galante — plan de continuidad y construcción
 
 Versión: 1.1, 2026-10-21. **Stack actualizado por pedido del responsable: Next.js + TypeScript, Tailwind CSS + shadcn/ui, Auth.js + Zod, Drizzle ORM y Neon PostgreSQL. Listo para revisión técnica de otro agente y posterior ejecución por etapas. No es autorización de despliegue ni una especificación exhaustiva de cada módulo.**

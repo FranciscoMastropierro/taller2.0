@@ -24,3 +24,19 @@ export const accessAudit = pgTable("access_audit", {
   action: text("action").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+export const customers = pgTable("customers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  code: integer("code").generatedAlwaysAsIdentity().notNull().unique(),
+  name: text("name").notNull(),
+  document: text("document").default("").notNull(),
+  phone: text("phone").default("").notNull(),
+  email: text("email").default("").notNull(),
+  address: text("address").default("").notNull(),
+  notes: text("notes").default("").notNull(),
+  version: integer("version").default(1).notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
+  updatedBy: uuid("updated_by").references(() => appUsers.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, t => [check("customer_name_length", sql`length(trim(${t.name})) BETWEEN 2 AND 160`), check("customer_version_positive", sql`${t.version} > 0`)]);

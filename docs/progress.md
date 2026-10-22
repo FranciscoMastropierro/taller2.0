@@ -1,4 +1,13 @@
+> Actualización de alcance — 22/10/2026: por pedido del responsable se deja sin efecto el guardado offline. La etapa 3A no es requisito para continuar. El desarrollo sigue con módulos online, comenzando por clientes (docs/tasks/004-clientes.md). Las referencias offline siguientes son antecedentes históricos, no requisitos vigentes.
+
 # Ejecución por partes
+
+## Entrega 3 — clientes online, 22/10/2026
+
+- Rama feat/modulo-clientes. Retirado offline del alcance por pedido del responsable; etapa 3A conservada sólo como antecedente.
+- Pantallas /clientes, /clientes/nuevo y /clientes/[id]: búsqueda paginada, ficha, alta y edición. PostgreSQL con código nuevo, UUID, autor y fechas; control de versión evita sobrescritura concurrente.
+- Permisos de escritura comprobados en servidor para administración/recepción. Los demás roles consultan. Datos sintéticos; sin importación del legado.
+- Migración y grants aplicados en desarrollo local. Pruebas unitarias 4/4 e integración 8/8 correctas. E2E de acceso correcto y E2E de clientes correcto: alta, búsqueda, edición, conflicto conservando propuesta y denegación de escritura tras cambio de rol. Lint, TypeScript y build de producción correctos. Capturas de listado y formulario inspeccionadas.
 
 ## Entrega 1 — 21/10/2026
 
