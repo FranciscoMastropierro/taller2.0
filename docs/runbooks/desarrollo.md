@@ -49,4 +49,4 @@ La limitación de login admite ocho intentos por usuario normalizado cada quince
 
 ## Estado de funciones
 
-Ingreso, sesión, roles y portada funcionan. Clientes, órdenes, mesas, offline, importación, finanzas y ARCA aún no están implementados. La portada lo indica expresamente. La siguiente etapa es 3A; no utilizar esta entrega para operar ni migrar datos reales.
+Ingreso, sesión, roles, clientes y órdenes funcionan online. Migrar y aplicar scripts/runtime-grants.sql antes de iniciar una versión con tablas nuevas. Desde Clientes se pueden abrir órdenes del cliente o ingresar una reparación; desde Inicio se accede al listado general. Admin/recepción ingresan, editan y avanzan estados; técnicos consultan sólo sus órdenes y registran diagnóstico/trabajo/minutos; consulta no recibe presupuesto. Las correcciones de estado requieren admin y motivo. Ubicación es texto libre por orden, no un catálogo de mesas. Offline quedó fuera del alcance. Importación, impresión definitiva, finanzas y ARCA siguen pendientes; no utilizar esta entrega para migrar datos reales ni sustituir el sistema productivo.

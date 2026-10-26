@@ -15,6 +15,13 @@
       "when": 1792694481285,
       "tag": "0001_empty_hex",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793041990125,
+      "tag": "0002_bitter_lady_vermin",
+      "breakpoints": true
     }
   ]
 }

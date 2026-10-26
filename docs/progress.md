@@ -2,6 +2,24 @@
 
 # Ejecución por partes
 
+## Ajuste de alcance y estructura de Inicio — 26/10/2026
+
+- Se retiran del plan la administración de usuarios/técnicos y el catálogo de mesas. Acceso previsto sólo para Ricardo y administración. Ubicación libre en órdenes puede mantenerse.
+- Cuatro tarjetas: Clientes, Órdenes de trabajo, Cheques y Comprobantes. Nuevas rutas /cheques y /comprobantes protegidas por finance:read, con bloques pendientes y sin escrituras.
+- Pendientes funcionales: impresión, importación/histórico, cuenta corriente, cobros/anticipos/recibos, cheques de terceros, remitos/listados y ARCA; también despliegue y restauración.
+- Verificación de esta estructura: TypeScript, lint y build correctos; navegación de las cuatro tarjetas, aviso pendiente en ambas rutas y redirección sin sesión comprobados en navegador; capturas escritorio/móvil inspeccionadas. Cuenta sintética de verificación eliminada al terminar.
+- Los perfiles técnicos ya implementados todavía requieren adaptación en código. No confundir la modificación documental con una revocación ejecutada. Contrato de continuidad: docs/tasks/006-continuidad-administrativa.md.
+
+## Entrega 4 — órdenes online, 26/10/2026
+
+- Rama `feat/modulo-ordenes` desde main con clientes integrado. Contrato: `docs/tasks/005-ordenes.md`.
+- Listado /ordenes con búsqueda y filtros por estado, ubicación y cliente; alta /ordenes/nueva desde cliente existente; ficha /ordenes/[id] con edición, seguimiento técnico y estados TURNO → TERMINADO → ENTREGADO.
+- Técnico asignado, mesa/ubicación, diagnóstico, trabajo realizado y minutos acumulados. Presupuesto ARS decimal opcional y aprobación textual, sin generar deuda. Número interno nuevo, sin interpretar numeración histórica.
+- Historial antes/después, actor y motivo en correcciones administrativas, en transacción con la orden. Concurrencia por versión e idempotencia del ingreso por UUID/hash. Entregadas sólo consulta hasta corrección administrativa.
+- Admin/recepción operan; técnico sólo sus órdenes y campos técnicos; consulta sin presupuesto. Presupuesto y aprobación excluidos también del historial enviado a roles sin finanzas.
+- Migración 0002 y grants runtime aplicados localmente. Unitarias 6/6 e integración PostgreSQL 20/20 correctas. E2E de acceso y clientes correctos; E2E de órdenes 2/2: flujo completo con conflicto/corrección y permisos técnicos sin fuga de presupuesto. Lint, TypeScript y build correctos. Capturas de listado, formulario y ficha escritorio/móvil revisadas.
+- Pendientes fuera de esta entrega: importación de históricos, impresión definitiva, finanzas y ARCA. Catálogo de mesas retirado del alcance posteriormente No se realizó despliegue ni corte productivo.
+
 ## Entrega 3 — clientes online, 22/10/2026
 
 - Rama feat/modulo-clientes. Retirado offline del alcance por pedido del responsable; etapa 3A conservada sólo como antecedente.

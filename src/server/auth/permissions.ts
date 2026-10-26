@@ -1,8 +1,8 @@
 import type { Role } from "../../shared/contracts/auth";
-export type Permission = "work:read" | "work:technical" | "customers:write" | "finance:read" | "users:manage";
+export type Permission = "work:read" | "work:write" | "work:correct" | "work:technical" | "customers:write" | "finance:read" | "users:manage";
 const permissions: Record<Role, readonly Permission[]> = {
-  admin: ["work:read", "work:technical", "customers:write", "finance:read", "users:manage"],
-  reception: ["work:read", "customers:write", "finance:read"],
+  admin: ["work:read", "work:write", "work:correct", "work:technical", "customers:write", "finance:read", "users:manage"],
+  reception: ["work:read", "work:write", "customers:write", "finance:read"],
   technician: ["work:read", "work:technical"],
   readonly: ["work:read"],
 };

@@ -1,3 +1,5 @@
+> Alcance vigente — 26/10/2026: acceso previsto sólo para Ricardo y personal administrativo. Se excluyen el módulo de administración de usuarios/técnicos, el acceso de técnicos y el catálogo de mesas. La ubicación libre de una orden puede conservarse. Inicio tiene exactamente cuatro tarjetas: Clientes, Órdenes de trabajo, Cheques y Comprobantes. Cheques y Comprobantes tienen sólo estructura visual; sus operaciones y los demás módulos pendientes no se consideran implementados. La adaptación del código de roles existente se entrega como tarea pendiente en docs/tasks/006-continuidad-administrativa.md.
+
 > Actualización de alcance — 22/10/2026: por pedido del responsable se deja sin efecto el guardado offline. La etapa 3A no es requisito para continuar. El desarrollo sigue con módulos online, comenzando por clientes (docs/tasks/004-clientes.md). Las referencias offline siguientes son antecedentes históricos, no requisitos vigentes.
 
 # Contrato de reemplazo — etapa 1
@@ -40,13 +42,13 @@ Casos de aceptación:
 
 ## Acceso y operación sin conexión
 
-`admin` administra acceso/configuración y correcciones; `reception` opera clientes, taller y finanzas; `technician` sólo tareas asignadas y campos técnicos; `readonly` consulta operación sin finanzas. Los permisos concretos por campo/comando se implementan por módulo, con denegación por defecto. Toda entrada de servidor valida usuario activo, rol vigente y versión de sesión.
+`admin` corresponde a Ricardo/configuración y correcciones; `reception` corresponde al personal administrativo que opera clientes, taller y finanzas. No hay acceso para técnicos ni módulo de gestión de usuarios. Adaptar los roles antiguos sin eliminar sus referencias históricas según la tarea 006. Los permisos concretos por campo/comando se implementan por módulo, con denegación por defecto. Toda entrada de servidor valida usuario activo, rol vigente y versión de sesión.
 
 El primer acceso es online. El puesto aprovisionado guarda operaciones en IndexedDB junto con su outbox de forma atómica. Distinguir guardado local, pendiente, sincronizado, conflicto y rechazado. Conservar pendientes al vencer sesión; nunca transferirlos a otro usuario. La habilitación local propuesta de siete días se verifica en 3A.
 
 Casos de aceptación:
 
-- A1: técnico y consulta no acceden a comandos ni datos financieros por endpoints directos.
+- A1 vigente: las cuentas de perfiles anteriores technician/readonly no ingresan a la app ni reutilizan sesiones previas; Ricardo y administración conservan acceso autorizado. Adaptación pendiente en tarea 006.
 - A2: cerrar/reabrir sin red conserva orden y comando; reenvío con respuesta perdida no duplica el efecto central.
 - A3: cuota agotada no muestra guardado exitoso; sesión vencida conserva cola y solicita revalidación.
 - A4: dos pestañas no duplican envíos efectivos y una actualización de aplicación conserva outbox.
