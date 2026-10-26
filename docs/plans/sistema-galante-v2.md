@@ -1,12 +1,14 @@
+> Alcance vigente — 26/10/2026: acceso previsto sólo para Ricardo y personal administrativo. Se excluyen el módulo de administración de usuarios/técnicos, el acceso de técnicos y el catálogo de mesas. La ubicación libre de una orden puede conservarse. Inicio tiene exactamente cuatro tarjetas: Clientes, Órdenes de trabajo, Cheques y Comprobantes. Cheques y Comprobantes tienen sólo estructura visual; sus operaciones y los demás módulos pendientes no se consideran implementados. La adaptación del código de roles existente se entrega como tarea pendiente en docs/tasks/006-continuidad-administrativa.md.
+
 > Actualización de alcance — 22/10/2026: por pedido del responsable se deja sin efecto el guardado offline. La etapa 3A no es requisito para continuar. El desarrollo sigue con módulos online, comenzando por clientes (docs/tasks/004-clientes.md). Las referencias offline siguientes son antecedentes históricos, no requisitos vigentes.
 
 # Sistema de gestión Galante — plan de continuidad y construcción
 
-Versión: 1.1, 2026-10-21. **Stack actualizado por pedido del responsable: Next.js + TypeScript, Tailwind CSS + shadcn/ui, Auth.js + Zod, Drizzle ORM y Neon PostgreSQL. Listo para revisión técnica de otro agente y posterior ejecución por etapas. No es autorización de despliegue ni una especificación exhaustiva de cada módulo.**
+Versión: 1.2, 2026-10-26 (alcance de acceso y navegación actualizado). **Stack actualizado por pedido del responsable: Next.js + TypeScript, Tailwind CSS + shadcn/ui, Auth.js + Zod, Drizzle ORM y Neon PostgreSQL. Listo para revisión técnica de otro agente y posterior ejecución por etapas. No es autorización de despliegue ni una especificación exhaustiva de cada módulo.**
 
 ## Objetivo
 
-Reemplazar el sistema anterior conservando información y continuidad: encontrar clientes y trabajos anteriores, continuar reparaciones abiertas y cobrar deudas existentes sin duplicar movimientos. Cuenta corriente, cobros, cheques de terceros, remitos y facturación integrada con ARCA son indispensables para el reemplazo completo. Debe guardar operaciones durante cortes de Internet y sincronizarlas posteriormente. El éxito no consiste sólo en guardar la base vieja como archivo.
+Reemplazar el sistema anterior conservando información y continuidad: encontrar clientes y trabajos anteriores, continuar reparaciones abiertas y cobrar deudas existentes sin duplicar movimientos. Cuenta corriente, cobros, cheques de terceros, remitos y facturación integrada con ARCA son indispensables para el reemplazo completo. La operación vigente requiere conexión a Internet; offline fue retirado del alcance. El éxito no consiste sólo en guardar la base vieja como archivo.
 
 Este plan incorpora `../reviews/arquitectura-mvp-taller-review.md` y sustituye como plan de trabajo a `../arquitectura-mvp-taller.md` y `modernizacion-app-taller.md`, que quedan como antecedentes. Las reglas indicadas como confirmadas provienen del responsable; las soluciones técnicas y políticas de corrección son decisiones propuestas en esta versión para revisión.
 
@@ -16,7 +18,10 @@ Este plan incorpora `../reviews/arquitectura-mvp-taller-review.md` y sustituye c
 - Son obligatorios cuenta corriente, cobros, cheques de terceros, remitos y facturación integrada con ARCA. Se construirán por partes antes del reemplazo completo.
 - Únicamente tres estados operativos: **TURNO** (recién ingresado), **TERMINADO** (resuelto, aún en el taller) y **ENTREGADO** (retirado).
 - **ESTANTERÍA es la ubicación en una mesa de trabajo**; hay varias mesas. No es un estado de reparación.
-- Se requiere guardar sin Internet y resincronizar con el servidor.
+- Offline retirado del alcance el 22/10/2026.
+- Acceso sólo para Ricardo y personal administrativo, sin acceso para técnicos ni módulo de gestión de usuarios.
+- Sin catálogo ni módulo de mesas. La ubicación se conserva como dato libre de la orden.
+- Inicio: Clientes, Órdenes de trabajo, Cheques y Comprobantes. Las dos últimas agrupan cheques de terceros, remitos, consultas/listados y ARCA; quedan pendientes de implementación funcional.
 - Habrá **una sola PC**, que el responsable está preparando con Windows 10. No se necesita compartir cambios entre puestos durante cortes. Cantidad de cuentas de usuario y permisos se define al configurar acceso; no implica múltiples equipos.
 - La deuda comercial nace **al facturar**, no al terminar ni entregar. Se permiten anticipos y un pago para varios trabajos/facturas.
 - Recibir un cheque de terceros reduce la deuda comercial, pero el instrumento permanece como **valor pendiente de cobro** hasta su acreditación.
@@ -100,9 +105,9 @@ Salida: ADR de topología, protocolo de sincronización versionado, política de
 
 ### 4. Diseñar el modelo y la correspondencia con Access
 
-Definir clientes, órdenes, técnicos, asignaciones, historial de estados, mesas, tiempo trabajado, documentos y auditoría. Incluir cuentas, cargos, cobros, aplicaciones, cheques de terceros, remitos, comprobantes fiscales, tareas fiscales y operaciones de sincronización. Especificar contrato por campo: origen, destino, unidad, nulos, transformación y validación.
+Definir clientes, órdenes, historial de estados, ubicación libre, tiempo trabajado, documentos y auditoría. No crear entidades ni módulos de técnicos o catálogo de mesas. Incluir cuentas, cargos, cobros, aplicaciones, cheques de terceros, remitos, comprobantes fiscales, tareas fiscales y operaciones de sincronización. Especificar contrato por campo: origen, destino, unidad, nulos, transformación y validación.
 
-Estados: `queued` = TURNO, `completed` = TERMINADO y `delivered` = ENTREGADO. Flujo ordinario TURNO → TERMINADO → ENTREGADO; no exigir un estado intermedio EN PROCESO. Motivos como falta de repuesto o de acuerdo serán notas/atributos, no estados nuevos. Una corrección de estado exige permisos, motivo y trazabilidad; el contrato por etapa definirá excepciones como devolución sin reparación. Cancelación/archivo son marcas administrativas separadas. `workbenches` representa mesas activas/inactivas y cada orden tiene mesa actual nullable con historial de movimientos.
+Estados: `queued` = TURNO, `completed` = TERMINADO y `delivered` = ENTREGADO. Flujo ordinario TURNO → TERMINADO → ENTREGADO; no exigir un estado intermedio EN PROCESO. Motivos como falta de repuesto o de acuerdo serán notas/atributos, no estados nuevos. Una corrección de estado exige permisos, motivo y trazabilidad; el contrato por etapa definirá excepciones como devolución sin reparación. Cancelación/archivo son marcas administrativas separadas. La ubicación de la orden es texto libre; se elimina la entidad workbenches y su catálogo del plan vigente.
 
 Separar identidad del snapshot (hash/tabla/fila) de identidad persistente (fuente lógica/tabla/clave de negocio validada). Las tablas sin clave confiable requieren resolución explícita. Registrar la correspondencia de órdenes promovidas a operación para que consulta e indicadores no las dupliquen.
 
@@ -124,7 +129,7 @@ Salida: encontrar un cliente importado, ver su historial y crearle una orden nue
 
 ### 7. Implementar el ciclo de taller
 
-Recepción y ficha impresa; estados acordados; asignaciones; diagnóstico/tarea realizada; tiempo; presupuesto y aprobación según regla confirmada; terminación; entrega. Conservar referencias anteriores y registrar todas las correcciones. Confirmar numeración nueva antes de imprimir comprobantes definitivos.
+Recepción y ficha impresa; estados acordados; diagnóstico/tarea realizada registrados por administración; tiempo; presupuesto y aprobación según regla confirmada; terminación; entrega. Conservar referencias anteriores y registrar todas las correcciones. Confirmar numeración nueva antes de imprimir comprobantes definitivos.
 
 Salida: continuar y entregar una orden importada, además de completar un trabajo nuevo. Pruebas de concurrencia, reintentos y fallas transaccionales. Impresión real como aceptación operativa separada de CI.
 
@@ -250,7 +255,7 @@ Hash con Argon2id en runtime Node.js y parámetros registrados en el contrato de
 
 JWT en cookie segura/HttpOnly en producción. Cada lectura o comando protegido obtiene sesión y consulta usuario activo, rol actual y `session_version` en la base; el rol cacheado en el token no es autoridad. Cambio de contraseña/revocación aumenta versión y rechaza tokens anteriores. Middleware/layout ayudan a navegación, pero no son la única barrera. No instalar Neon Auth ni Supabase Auth junto a Auth.js.
 
-Roles iniciales: `admin` administra usuarios/configuración y correcciones; `reception` opera clientes, trabajos y finanzas; `technician` accede a tareas asignadas y campos técnicos sin cuenta/facturación; `readonly` consulta operación sin finanzas. Desglosar permisos por comando/campo en el contrato de cada módulo; un usuario no puede elevar su rol editando un perfil o enviándolo en un payload.
+Acceso vigente previsto: `admin` para Ricardo/configuración y correcciones; `reception` para personal administrativo que opera clientes, trabajos y finanzas. No construir pantalla de administración de usuarios ni habilitar acceso para técnicos. Los roles technician/readonly que existen en el código son compatibilidad anterior, no perfiles del producto vigente; la tarea 006 debe impedir su ingreso y acceso con sesiones previas sin borrar datos históricos. Desglosar permisos por comando/campo en el contrato de cada módulo; un usuario no puede elevar su rol editando un perfil o enviándolo en un payload.
 
 La sesión offline es una habilitación local distinta de una sesión Auth.js vigente en servidor. Propuesta inicial: aprovisionar el puesto tras login online, permitir hasta siete días de trabajo local desde la última validación, con identidad/rol y vencimiento firmados por servidor. El límite se verifica en la prueba 3A y se documenta; después se conserva todo y se exige reconexión para nuevos cambios. No es una defensa frente al dueño del equipo que manipule reloj/almacenamiento. No crear usuarios ni modificar permisos offline. Revocación se impone al reconectar, conservando pendientes rechazados para recuperación administrativa. Reautenticar no reasigna comandos al usuario siguiente.
 
@@ -343,7 +348,7 @@ La revisión del stack 1.1 se debe registrar primero en `docs/reviews/sistema-ga
 - `docs/adr/0001-pwa-offline-puesto-unico.md`: ratificar topología y resultados de prueba 3A, navegador/OS, sesión y respaldo local.
 - `docs/specs/01-base-y-sincronizacion.md`: identidad, migraciones, comandos, persistencia, conflictos, política de sesión offline y recuperación. Incluir edición offline de clientes/órdenes y resultado fiscal recibido del servidor.
 - `docs/specs/02-importacion-y-continuidad.md`: mapeos, copia final, apertura financiera, cartera y conciliación.
-- `docs/specs/03-clientes-taller-mesas.md`: tres estados, impresión, correcciones y permisos.
+- `docs/specs/03-clientes-taller.md`: tres estados, impresión, correcciones y acceso administrativo; sin catálogo de mesas ni acceso técnico.
 - `docs/specs/04-cuenta-cobros-cheques.md`: casos 1–9 y contratos separados de 8A, 8B y 8C.
 - `docs/specs/05-remitos-listados.md`: contenido, numeración, reimpresión y relación con entregas.
 - `docs/specs/06-arca.md`: modalidad verificada, comprobantes, certificados, punto de venta, homologación, recuperación y paso a producción.

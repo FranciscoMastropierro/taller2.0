@@ -24,3 +24,19 @@
 - Error de ejecución corregido: useActionState reiniciaba el usuario tras contraseña incorrecta. Campo controlado y regresión en E2E; contraseña continúa sin persistirse.
 - Error de test corregido: el orden textual PHC de parámetros Argon2 no es semántico. Se comprueban los valores sin imponer orden.
 - SQL de rol mínimo agregado; sin tablas de negocio aún. Las restricciones de asignación de tareas al técnico se implementarán con el módulo de órdenes, no se declaran resueltas con un rol global.
+
+## Órdenes — 26/10/2026
+
+- Rama desde main con clientes integrado. Estados y permisos según contrato; se añaden work:write y work:correct sin ampliar permisos técnicos.
+- Número interno nuevo, independiente del legado; tiempo acumulado en minutos enteros sólo para nuevos registros. Impresión y unidades antiguas pendientes. Mesa es ubicación de texto, sin crear un cuarto estado.
+- Cliente fijo después del ingreso. Correcciones de estado sólo admin con motivo, sin borrar historial; órdenes entregadas se consultan y requieren corrección administrativa antes de editar.
+- Presupuesto decimal exacto ARS opcional y evidencia textual de aprobación. Roles técnicos/consulta no reciben importes ni aprobación, incluso en historial. Sin efectos comerciales.
+- Cada versión conserva snapshot antes/después en la misma transacción. UUID de alta estable y hash canónico del contrato normalizado evitan duplicación por reintento; colisiones de payload se rechazan.
+- Un reintento ya confirmado resuelve la identidad existente antes de volver a validar el técnico original: su desactivación posterior no convierte el ingreso confirmado en una operación nueva ni lo pierde. Prueba de regresión con técnico inactivo.
+
+## Inicio y alcance administrativo — 26/10/2026
+
+- Pedido del responsable: descartar administración de usuarios/técnicos y catálogo de mesas. Acceso sólo Ricardo/administración. No agregar cuentas técnicas.
+- Cuatro tarjetas fijas: Clientes, Órdenes de trabajo, Cheques y Comprobantes; estas últimas agrupan cartera, remitos/listados y ARCA, con funciones pendientes.
+- Esta entrega crea estructura visual y actualiza el plan. No modifica roles persistidos ni borra referencias a usuarios/asignaciones existentes; la restricción efectiva de perfiles anteriores queda especificada en tarea 006 para el siguiente agente.
+- Las pantallas pendientes usan el permiso existente finance:read para no abrir nuevas superficies financieras a perfiles antiguos. No hay importes de ejemplo, cobros simulados ni botones de emisión activos.

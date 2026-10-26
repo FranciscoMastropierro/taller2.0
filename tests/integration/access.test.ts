@@ -11,6 +11,7 @@ import * as schema from "../../src/server/db/schema";
 import { getDatabaseUrl } from "../../src/server/env";
 import { authenticate, authorizeIdentity, changeAccess, consumeLoginAttempt, createInitialAdmin, recoverUser } from "../../src/server/auth/service";
 import { hashPassword } from "../../src/server/auth/password";
+import { registerOrderTests } from "./orders.cases";
 config({ path: ".env.local", quiet: true });
 // Una DB nombrada explícitamente para pruebas. Nunca resetear esquemas compartidos.
 const url = getDatabaseUrl("TEST_DATABASE_URL");
@@ -102,3 +103,5 @@ test("último administrador protegido y comando no autorizado sin cambios", asyn
   await assert.rejects(changeAccess(db, tech, admin.id, { role: "readonly", active: false }));
   assert.equal((await authorizeIdentity(db, admin)).role, "admin");
 });
+
+registerOrderTests(() => ({ db, admin, passwordHash }));
