@@ -15,4 +15,6 @@ GRANT SELECT, INSERT ON public.order_sheets TO galante_runtime;
 GRANT SELECT, INSERT ON public.account_entries TO galante_runtime;
 GRANT SELECT, INSERT ON public.application_batches, public.credit_applications, public.payment_receipts, public.payment_components TO galante_runtime;
 GRANT USAGE ON SEQUENCE public.payment_receipts_number_seq TO galante_runtime;
+GRANT SELECT, INSERT ON public.third_party_cheques, public.cheque_movements, public.credit_reversals TO galante_runtime;
+GRANT UPDATE (status, version) ON public.third_party_cheques TO galante_runtime;
 -- Sin DELETE, TRUNCATE, CREATE ni acceso al esquema drizzle de migraciones.

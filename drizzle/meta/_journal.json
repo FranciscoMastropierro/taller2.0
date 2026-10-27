@@ -43,6 +43,13 @@
       "when": 1793138048026,
       "tag": "0005_green_blindfold",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793138691206,
+      "tag": "0006_graceful_diamondback",
+      "breakpoints": true
     }
   ]
 }

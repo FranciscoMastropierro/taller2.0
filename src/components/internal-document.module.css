@@ -1,8 +1,8 @@
 .toolbar { max-width: 850px; margin: 24px auto; padding: 0 20px; }
-.paper { max-width: 850px; margin: 24px auto; padding: 32px; background: white; border: 1px solid #ccc; color: #111; overflow-wrap: anywhere; }
+.paper { page: galante-internal-document; max-width: 850px; margin: 24px auto; padding: 32px; background: white; border: 1px solid #ccc; color: #111; overflow-wrap: anywhere; }
 .header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; padding-bottom: 20px; border-bottom: 2px solid #222; }
 .table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 14px; }
 .table th, .table td { text-align: left; padding: 10px 6px; border-bottom: 1px solid #ccc; }
 .note { white-space: pre-wrap; margin-top: 20px; font-size: 14px; }
-@page { size: auto; margin: 12mm; }
+@page galante-internal-document { size: auto; margin: 12mm; }
 @media print { .toolbar { display: none; } .paper { max-width: none; border: 0; margin: 0; padding: 0; } .table tr { break-inside: avoid; } }

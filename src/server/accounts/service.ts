@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { desc, eq, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db";
-import { accountEntries, customers } from "../db/schema";
+import { accountEntries, customers, thirdPartyCheques } from "../db/schema";
 import { authorizeIdentity, authorizeActor } from "../auth/service";
 import { AccessError } from "../auth/permissions";
 import { openingSchema } from "../../shared/contracts/accounts";
@@ -39,13 +39,14 @@ export async function readAccount(db: Database, identity: unknown, customerId: s
   if (!z.uuid().safeParse(customerId).success) return null;
   const [customer] = await db.select({ id: customers.id, name: customers.name }).from(customers).where(eq(customers.id, customerId));
   if (!customer) return null;
-  const [entries, positions] = await Promise.all([
+  const [entries, positions, portfolio] = await Promise.all([
     db.select().from(accountEntries).where(eq(accountEntries.customerId, customerId)).orderBy(desc(accountEntries.createdAt), desc(accountEntries.id)).limit(25).offset((page - 1) * 25),
     accountPositions(db, customerId),
+    db.select({ amount: accountEntries.amount }).from(thirdPartyCheques).innerJoin(accountEntries, eq(accountEntries.id, thirdPartyCheques.creditId)).where(and(eq(thirdPartyCheques.customerId, customerId), inArray(thirdPartyCheques.status, ["received", "deposited"]))),
   ]);
   const debts = positions.filter(row => row.kind === "opening_debt");
-  const credits = positions.filter(row => row.kind !== "opening_debt");
+  const credits = positions.filter(row => (row.kind === "opening_credit" || row.kind === "payment_credit") && !row.reversed);
   const debt = debts.reduce((sum, row) => sum + cents(row.amount), 0n);
   const credit = credits.reduce((sum, row) => sum + cents(row.amount), 0n);
-  return { customer, entries, total: positions.length, pending: decimal(debts.reduce((sum, row) => sum + cents(row.remaining), 0n)), available: decimal(credits.reduce((sum, row) => sum + cents(row.remaining), 0n)), net: decimal(debt - credit), debts: debts.filter(row => cents(row.remaining) > 0n), credits: credits.filter(row => cents(row.remaining) > 0n) };
+  return { portfolio: decimal(portfolio.reduce((sum, row) => sum + cents(row.amount), 0n)), customer, entries, total: positions.length, pending: decimal(debts.reduce((sum, row) => sum + cents(row.remaining), 0n)), available: decimal(credits.reduce((sum, row) => sum + cents(row.remaining), 0n)), net: decimal(debt - credit), debts: debts.filter(row => cents(row.remaining) > 0n), credits: credits.filter(row => cents(row.remaining) > 0n) };
 }

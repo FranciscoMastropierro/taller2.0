@@ -93,3 +93,8 @@ Migración local y grants aplicados. Correctos lint/typecheck/build, 11 unitaria
 Tarea 009 implementada: cobros en efectivo/transferencia, anticipos, componentes, aplicaciones parciales a varias obligaciones y uso de crédito disponible sin nuevo cobro. UUID/hash y bloqueo de cliente para reintentos/concurrencia. Recibo interno R con snapshot inmutable e impresión; Comprobantes permite consultarlos. Ningún recibo emite una factura.
 
 Migración/grants aplicados, sin cobros reales. Gate correcto: 11 unitarias, 37 casos de integración, 8 E2E, lint/typecheck/build. Cheques, remitos/reportes y ARCA siguen pendientes.
+
+## Cheques de terceros — 27/10/2026
+Tarea 010 implementada: recepción vinculada a componente de cobro, cartera, depósito, acreditación, rechazo e historial versionado. Rechazo revierte una sola vez el crédito y aplicaciones del instrumento; efectivo y otros componentes se conservan. Depósito/acreditación no agregan crédito. Banco/cuenta/número previenen duplicación; sin integración bancaria ni importación automática de cartera anterior.
+
+Correctos 11 unitarias, 43 casos de integración y 9 E2E, lint/typecheck/build. Migración/grants locales aplicados y captura sintética revisada. No se recibieron ni operaron instrumentos reales. Remitos/reportes y ARCA siguen pendientes.

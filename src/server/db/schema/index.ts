@@ -121,7 +121,7 @@ export const orderSheets = pgTable("order_sheets", {
 export const accountEntries = pgTable("account_entries", {
   id: uuid("id").primaryKey(),
   customerId: uuid("customer_id").references(() => customers.id).notNull(),
-  kind: text("kind", { enum: ["opening_debt", "opening_credit", "payment_credit"] }).notNull(),
+  kind: text("kind", { enum: ["opening_debt", "opening_credit", "payment_credit", "credit_reversal"] }).notNull(),
   sourceKey: text("source_key").notNull().unique(),
   reference: text("reference").notNull(),
   amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
@@ -130,7 +130,7 @@ export const accountEntries = pgTable("account_entries", {
   payloadHash: text("payload_hash").notNull(),
   createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, t => [index("account_customer_idx").on(t.customerId), check("account_amount_positive", sql`${t.amount} > 0`), check("account_kind_valid", sql`${t.kind} IN ('opening_debt', 'opening_credit', 'payment_credit')`)]);
+}, t => [index("account_customer_idx").on(t.customerId), check("account_amount_positive", sql`${t.amount} > 0`), check("account_kind_valid", sql`${t.kind} IN ('opening_debt', 'opening_credit', 'payment_credit', 'credit_reversal')`)]);
 
 export const applicationBatches = pgTable("application_batches", {
   id: uuid("id").primaryKey(), customerId: uuid("customer_id").references(() => customers.id).notNull(),
@@ -152,5 +152,23 @@ export const paymentReceipts = pgTable("payment_receipts", {
 });
 export const paymentComponents = pgTable("payment_components", {
   id: uuid("id").primaryKey(), receiptId: uuid("receipt_id").references(() => paymentReceipts.id).notNull(),
-  creditId: uuid("credit_id").references(() => accountEntries.id).notNull().unique(), method: text("method", { enum: ["cash", "transfer"] }).notNull(),
+  creditId: uuid("credit_id").references(() => accountEntries.id).notNull().unique(), method: text("method", { enum: ["cash", "transfer", "cheque"] }).notNull(),
+});
+
+export const thirdPartyCheques = pgTable("third_party_cheques", {
+  id: uuid("id").primaryKey().references(() => paymentComponents.id),
+  customerId: uuid("customer_id").references(() => customers.id).notNull(), creditId: uuid("credit_id").references(() => accountEntries.id).notNull().unique(),
+  identityHash: text("identity_hash").notNull().unique(), bank: text("bank").notNull(), account: text("account").notNull(), number: text("number").notNull(), deliveredBy: text("delivered_by").notNull(),
+  issuedOn: text("issued_on").notNull(), payableOn: text("payable_on").notNull(),
+  status: text("status", { enum: ["received", "deposited", "credited", "rejected"] }).default("received").notNull(), version: integer("version").default(1).notNull(),
+}, t => [check("cheque_status_valid", sql`${t.status} IN ('received','deposited','credited','rejected')`), index("cheque_customer_idx").on(t.customerId), index("cheque_status_idx").on(t.status)]);
+export const chequeMovements = pgTable("cheque_movements", {
+  id: uuid("id").primaryKey(), chequeId: uuid("cheque_id").references(() => thirdPartyCheques.id).notNull(),
+  version: integer("version").notNull(), action: text("action").notNull(), fromStatus: text("from_status"), toStatus: text("to_status").notNull(),
+  businessDate: text("business_date").notNull(), reason: text("reason").notNull(), payloadHash: text("payload_hash").notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(), createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, t => [unique("cheque_movement_version_unique").on(t.chequeId, t.version)]);
+export const creditReversals = pgTable("credit_reversals", {
+  id: uuid("id").primaryKey().references(() => accountEntries.id), creditId: uuid("credit_id").references(() => accountEntries.id).notNull().unique(),
+  chequeId: uuid("cheque_id").references(() => thirdPartyCheques.id).notNull().unique(), movementId: uuid("movement_id").references(() => chequeMovements.id).notNull().unique(),
 });

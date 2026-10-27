@@ -58,7 +58,7 @@ test("recepción registra cobro150, aplica70+60 y reimprime recibo inmutable", a
   await expect(page.getByRole("article")).toContainText(`Cliente cobros ${suffix}`);
   await page.goto(`/clientes/${customerId}/cuenta`);
   await expect(page.locator("dl").getByText("ARS 20.00", { exact: true })).toHaveCount(1);
-  await expect(page.locator("dl").getByText("ARS 0.00", { exact: true })).toHaveCount(1);
+  await expect(page.locator("dl").getByText("ARS 0.00", { exact: true })).toHaveCount(2);
   await page.context().clearCookies();
   await page.goto(receiptUrl);
   await expect(page).toHaveURL(/ingresar/);

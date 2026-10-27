@@ -1,13 +1,15 @@
 import { createHash } from "node:crypto";
-import { count, desc, eq, sql } from "drizzle-orm";
+import { count, desc, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db";
-import { accountEntries, applicationBatches, creditApplications, customers, paymentComponents, paymentReceipts } from "../db/schema";
+import { accountEntries, applicationBatches, creditApplications, customers, paymentComponents, paymentReceipts, thirdPartyCheques, chequeMovements } from "../db/schema";
 import { authorizeActor, authorizeIdentity } from "../auth/service";
 import { AccountError } from "../accounts/service";
 import { accountPositions } from "../accounts/positions";
 import { cents, decimal } from "../../shared/contracts/money";
 import { applyCreditSchema, receiptSchema, type ReceiptSnapshot } from "../../shared/contracts/payments";
+
+import { chequeIdentity } from "../cheques/identity";
 
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
 const hash = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
@@ -42,6 +44,10 @@ export async function createReceipt(db: Database, identity: unknown, input: unkn
   return db.transaction(async tx => {
     const actor = await authorizeActor(tx, identity, "finance:write");
     await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${data.id}, 0))`);
+    const physical = data.components.filter(component => component.method === "cheque");
+    const hashes = physical.map(component => chequeIdentity(component.cheque));
+    if (new Set(hashes).size !== hashes.length) throw new AccountError("El mismo cheque figura dos veces en el cobro.");
+    for (const key of [...hashes].sort()) await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${key}, 0))`);
     const [customer] = await tx.select().from(customers).where(eq(customers.id, data.customerId)).for("update");
     if (!customer) throw new AccountError("El cliente no existe.");
     const [existing] = await tx.select().from(paymentReceipts).where(eq(paymentReceipts.id, data.id));
@@ -49,6 +55,7 @@ export async function createReceipt(db: Database, identity: unknown, input: unkn
       if (existing.payloadHash !== payloadHash) throw new AccountError("El cobro ya fue registrado con otros datos.");
       return existing.id;
     }
+    if (hashes.length && (await tx.select({ id: thirdPartyCheques.id }).from(thirdPartyCheques).where(inArray(thirdPartyCheques.identityHash, hashes))).length) throw new AccountError("Ese cheque ya fue recibido. Consultá la cartera.");
     const credits = data.components.map(component => ({ id: component.id, available: cents(component.amount) }));
     const total = decimal(credits.reduce((sum, credit) => sum + credit.available, 0n));
     const applications = await planApplications(tx, customer.id, data.id, data.allocations, credits);
@@ -58,6 +65,10 @@ export async function createReceipt(db: Database, identity: unknown, input: unkn
     for (const component of data.components) {
       await tx.insert(accountEntries).values({ id: component.id, customerId: customer.id, kind: "payment_credit", sourceKey: `payment:${component.id}`, reference: `Recibo R-${String(receipt.number).padStart(6, "0")}`, amount: component.amount, businessDate: data.date, evidence: data.note || "Cobro registrado", payloadHash, createdBy: actor.id });
       await tx.insert(paymentComponents).values({ id: component.id, receiptId: data.id, creditId: component.id, method: component.method });
+      if (component.method === "cheque") {
+        await tx.insert(thirdPartyCheques).values({ id: component.id, customerId: customer.id, creditId: component.id, identityHash: chequeIdentity(component.cheque), ...component.cheque });
+        await tx.insert(chequeMovements).values({ id: component.id, chequeId: component.id, version: 1, action: "receive", fromStatus: null, toStatus: "received", businessDate: data.date, reason: `Recibido en R-${String(receipt.number).padStart(6, "0")}`, payloadHash, createdBy: actor.id });
+      }
     }
     if (applications.rows.length) await tx.insert(creditApplications).values(applications.rows);
     return data.id;
@@ -77,7 +88,7 @@ export async function applyAvailableCredit(db: Database, identity: unknown, inpu
       if (existing.payloadHash !== payloadHash) throw new AccountError("La aplicación ya existe con otros datos.");
       return data.id;
     }
-    const credit = (await accountPositions(tx as unknown as Database, customer.id)).find(row => row.id === data.creditId && row.kind !== "opening_debt");
+    const credit = (await accountPositions(tx as unknown as Database, customer.id)).find(row => row.id === data.creditId && (row.kind === "opening_credit" || row.kind === "payment_credit") && !row.reversed);
     if (!credit) throw new AccountError("El crédito no pertenece a este cliente.");
     const plan = await planApplications(tx, customer.id, data.id, data.allocations, [{ id: credit.id, available: cents(credit.remaining) }]);
     await tx.insert(applicationBatches).values({ id: data.id, customerId: customer.id, payloadHash, createdBy: actor.id });

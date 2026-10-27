@@ -38,7 +38,7 @@ test("ingreso, acceso directo denegado, revocación y logout", async ({ page }) 
   expect((await page.request.get("/api/admin/users")).status()).toBe(403);
   await expect(page.locator("section").filter({ has: page.getByRole("link") })).toHaveCount(4);
   await page.goto("/cheques");
-  await expect(page.getByRole("status")).toContainText("Este módulo está en preparación");
+  await expect(page.getByRole("heading", { name: "Cheques de terceros", exact: true })).toBeVisible();
   await page.goto("/comprobantes");
   await expect(page.getByRole("heading", { name: "Recibos de cobro", exact: true })).toBeVisible();
   await page.goto("/");

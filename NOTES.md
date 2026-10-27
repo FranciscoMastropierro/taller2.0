@@ -72,3 +72,9 @@
 - Aplicaciones explícitas por obligación; distribución entre componentes en orden declarado, persistida para poder revertir sólo un cheque en la etapa siguiente. No compensar automáticamente anticipos.
 - Recibo interno R con snapshot inmutable; no es factura ni comprobante fiscal. Créditos y aplicaciones no recrean cobros. No se registran pagos reales como prueba.
 - Las aplicaciones requieren calificar `account_entries.id` en la subconsulta correlacionada; `id` sin tabla se vinculaba a la fila de aplicación y devolvía pendientes incorrectos. Los casos F2/F3 y sobreaplicación lo detectaron; corregido antes de la carga local.
+
+## Cheques de terceros — 27/10/2026
+
+- Entrega separada de cobros (db15ec9). Instrumentos nuevos se reciben exclusivamente mediante componente de cobro; no importar cartera antigua como actual. Banco/cuenta libradora/número identifican instrumento, sin catálogos nuevos.
+- Estado bancario confirmado manualmente; la app no deposita ni consulta bancos. Rechazo desde cartera/depósito/acreditado es terminal y revierte sólo ese crédito/aplicaciones, con un movimiento contable inmutable.
+- Aplicaciones originales no se borran: se consideran inactivas cuando su componente tiene reversión. Recibo conserva snapshot inicial y enlaza al estado vigente del cheque.
