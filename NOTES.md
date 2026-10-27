@@ -65,3 +65,10 @@
 - Entrega separada de fichas/histórico (commit 9764b20). Aperturas manuales sólo admin, con respaldo y confirmación de conciliación; recepción consulta. No se agregan saldos desde la fuente recuperada.
 - Libro inmutable con origen único global, UUID estable y hash canónico para reintentos. Sólo ARS. Deuda pendiente/crédito disponible se mantienen separados hasta aplicaciones explícitas.
 - La validación transaccional del actor se comparte en auth/service como authorizeActor; conserva bloqueo de usuario, activo, perfil y sessionVersion, sin depender del módulo de órdenes.
+
+## Cobros y recibos — 27/10/2026
+
+- Entrega separada de aperturas (afdfd09). finance:write habilita cobros/aplicaciones para admin/reception; apertura sigue sólo admin y users:manage no cambia.
+- Aplicaciones explícitas por obligación; distribución entre componentes en orden declarado, persistida para poder revertir sólo un cheque en la etapa siguiente. No compensar automáticamente anticipos.
+- Recibo interno R con snapshot inmutable; no es factura ni comprobante fiscal. Créditos y aplicaciones no recrean cobros. No se registran pagos reales como prueba.
+- Las aplicaciones requieren calificar `account_entries.id` en la subconsulta correlacionada; `id` sin tabla se vinculaba a la fila de aplicación y devolvía pendientes incorrectos. Los casos F2/F3 y sobreaplicación lo detectaron; corregido antes de la carga local.

@@ -88,3 +88,8 @@ Cuenta corriente/aperturas conciliadas, cobros/anticipos, cheques y remitos/repo
 Implementada tarea 008: libro inmutable de aperturas por cliente, origen único, importes exactos, conciliación explícita y actor auditado. Ruta Cuenta corriente desde cliente: pendiente, crédito disponible y saldo neto separados. Administración registra aperturas; recepción consulta. Se conserva la cuenta vacía para los clientes importados hasta revisión real; no se cargaron deudas desde trabajos/facturas de SQLite.
 
 Migración local y grants aplicados. Correctos lint/typecheck/build, 11 unitarias, 32 casos de integración y 7 E2E. Cobros/aplicaciones, cheques, remitos/reportes y ARCA permanecen pendientes.
+
+## Cobros y recibos — 27/10/2026
+Tarea 009 implementada: cobros en efectivo/transferencia, anticipos, componentes, aplicaciones parciales a varias obligaciones y uso de crédito disponible sin nuevo cobro. UUID/hash y bloqueo de cliente para reintentos/concurrencia. Recibo interno R con snapshot inmutable e impresión; Comprobantes permite consultarlos. Ningún recibo emite una factura.
+
+Migración/grants aplicados, sin cobros reales. Gate correcto: 11 unitarias, 37 casos de integración, 8 E2E, lint/typecheck/build. Cheques, remitos/reportes y ARCA siguen pendientes.

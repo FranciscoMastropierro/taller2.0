@@ -14,6 +14,7 @@ import { hashPassword } from "../../src/server/auth/password";
 import { registerOrderTests } from "./orders.cases";
 import { registerLegacyTests } from "./legacy.cases";
 import { registerAccountTests } from "./accounts.cases";
+import { registerPaymentTests } from "./payments.cases";
 config({ path: ".env.local", quiet: true });
 // Una DB nombrada explícitamente para pruebas. Nunca resetear esquemas compartidos.
 const url = getDatabaseUrl("TEST_DATABASE_URL");
@@ -109,6 +110,7 @@ test("último administrador protegido y comando no autorizado sin cambios", asyn
 registerOrderTests(() => ({ db, admin, passwordHash }));
 registerLegacyTests(() => ({ db, admin, passwordHash }));
 registerAccountTests(() => ({ db, admin, passwordHash }));
+registerPaymentTests(() => ({ db, admin, passwordHash }));
 
 test("excluded roles reject valid passwords and previous identities without modifying data", async () => {
   for (const role of ["technician", "readonly"] as const) {

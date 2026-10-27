@@ -1,0 +1,65 @@
+import { test, expect } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { eq, inArray } from "drizzle-orm";
+import { getDatabaseUrl } from "../../src/server/env";
+import { accountEntries, applicationBatches, appUsers, creditApplications, customers, paymentComponents, paymentReceipts } from "../../src/server/db/schema";
+import { hashPassword } from "../../src/server/auth/password";
+import { createOpening } from "../../src/server/accounts/service";
+import * as schema from "../../src/server/db/schema";
+
+const pool = new Pool({ connectionString: getDatabaseUrl("TEST_DATABASE_URL") });
+const db = drizzle(pool, { schema });
+const suffix = randomUUID().slice(0, 8), password = randomUUID();
+let actorId: string, customerId: string;
+let references: string[];
+test.beforeAll(async () => {
+  const [actor] = await db.insert(appUsers).values({ username: `pay.browser.${suffix}`, displayName: "Cobros navegador", role: "admin", passwordHash: await hashPassword(password) }).returning();
+  actorId = actor.id;
+  const [customer] = await db.insert(customers).values({ name: `Cliente cobros ${suffix}`, createdBy: actorId, updatedBy: actorId }).returning();
+  customerId = customer.id;
+  references = [`Documento 70 ${suffix}`, `Documento 60 ${suffix}`];
+  for (const [index, amount] of ["70", "60"].entries()) await createOpening(db, actor, { id: randomUUID(), customerId, direction: "debt", amount, reference: references[index], date: "2026-10-27", evidence: "Documento sintético revisado", reconciled: "on" });
+  await db.update(appUsers).set({ role: "reception" }).where(eq(appUsers.id, actorId));
+});
+test.afterAll(async () => {
+  if (customerId) {
+    const receipts = await db.select().from(paymentReceipts).where(eq(paymentReceipts.customerId, customerId));
+    await db.delete(creditApplications).where(eq(creditApplications.customerId, customerId));
+    if (receipts.length) await db.delete(paymentComponents).where(inArray(paymentComponents.receiptId, receipts.map(row => row.id)));
+    await db.delete(paymentReceipts).where(eq(paymentReceipts.customerId, customerId));
+    await db.delete(applicationBatches).where(eq(applicationBatches.customerId, customerId));
+    await db.delete(accountEntries).where(eq(accountEntries.customerId, customerId));
+    await db.delete(customers).where(eq(customers.id, customerId));
+  }
+  if (actorId) await db.delete(appUsers).where(eq(appUsers.id, actorId));
+  await pool.end();
+});
+test("recepción registra cobro150, aplica70+60 y reimprime recibo inmutable", async ({ page }) => {
+  await page.goto(`/clientes/${customerId}/cuenta`);
+  await page.getByLabel("Usuario", { exact: true }).fill(`pay.browser.${suffix}`);
+  await page.getByLabel("Contraseña", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Ingresar al taller" }).click();
+  await expect(page.getByRole("heading", { name: "Bienvenido al taller." })).toBeVisible();
+  await page.goto(`/clientes/${customerId}/cuenta`);
+  const form = page.getByRole("form", { name: "Registrar cobro", exact: true });
+  await form.getByLabel("Importe 1 ARS").fill("150");
+  await form.getByLabel(new RegExp(references[0])).fill("70");
+  await form.getByLabel(new RegExp(references[1])).fill("60");
+  await form.getByRole("button", { name: "Registrar cobro y recibo" }).click();
+  await expect(page).toHaveURL(/\/comprobantes\/recibos\//);
+  const receiptUrl = page.url();
+  await expect(page.getByRole("article")).toContainText("Total recibido: ARS 150.00");
+  await expect(page.getByRole("article")).toContainText("Crédito sin aplicar al emitir: ARS 20.00");
+  await page.screenshot({ path: "test-results/recibo-cobro.png", fullPage: true });
+  await db.update(customers).set({ name: "Nombre cambiado después del cobro" }).where(eq(customers.id, customerId));
+  await page.reload();
+  await expect(page.getByRole("article")).toContainText(`Cliente cobros ${suffix}`);
+  await page.goto(`/clientes/${customerId}/cuenta`);
+  await expect(page.locator("dl").getByText("ARS 20.00", { exact: true })).toHaveCount(1);
+  await expect(page.locator("dl").getByText("ARS 0.00", { exact: true })).toHaveCount(1);
+  await page.context().clearCookies();
+  await page.goto(receiptUrl);
+  await expect(page).toHaveURL(/ingresar/);
+});

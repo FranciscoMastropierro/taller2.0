@@ -36,6 +36,13 @@
       "when": 1793137212737,
       "tag": "0004_shiny_sandman",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793138048026,
+      "tag": "0005_green_blindfold",
+      "breakpoints": true
     }
   ]
 }

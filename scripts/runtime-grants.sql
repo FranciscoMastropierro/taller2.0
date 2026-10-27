@@ -13,4 +13,6 @@ GRANT SELECT ON public.import_sources TO galante_runtime;
 GRANT SELECT, UPDATE (continued_order_id) ON public.historical_orders TO galante_runtime;
 GRANT SELECT, INSERT ON public.order_sheets TO galante_runtime;
 GRANT SELECT, INSERT ON public.account_entries TO galante_runtime;
+GRANT SELECT, INSERT ON public.application_batches, public.credit_applications, public.payment_receipts, public.payment_components TO galante_runtime;
+GRANT USAGE ON SEQUENCE public.payment_receipts_number_seq TO galante_runtime;
 -- Sin DELETE, TRUNCATE, CREATE ni acceso al esquema drizzle de migraciones.

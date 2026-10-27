@@ -32,11 +32,11 @@ test("conexión remota sin TLS rechazada sin revelar URL", () => {
 });
 
 test("only administrative roles have application permissions", () => {
-  const permissions: Permission[] = ["work:read", "work:write", "work:correct", "work:technical", "customers:write", "finance:read", "users:manage"];
+  const permissions: Permission[] = ["work:read", "work:write", "work:correct", "work:technical", "customers:write", "finance:read", "finance:write", "users:manage"];
   for (const permission of permissions) {
     assert.equal(can("technician", permission), false, permission);
     assert.equal(can("readonly", permission), false, permission);
     assert.equal(can("admin", permission), true, permission);
-    assert.equal(can("reception", permission), ["work:read", "work:write", "customers:write", "finance:read"].includes(permission), permission);
+    assert.equal(can("reception", permission), ["work:read", "work:write", "customers:write", "finance:read", "finance:write"].includes(permission), permission);
   }
 });

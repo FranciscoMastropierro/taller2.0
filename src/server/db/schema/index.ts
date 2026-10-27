@@ -2,6 +2,7 @@ import { check, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp
 import { sql } from "drizzle-orm";
 import { roles } from "../../../shared/contracts/auth";
 import type { SheetSnapshot } from "../../../shared/contracts/sheets";
+import type { ReceiptSnapshot } from "../../../shared/contracts/payments";
 export const appRole = pgEnum("app_role", roles);
 export const appUsers = pgTable("app_users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -120,7 +121,7 @@ export const orderSheets = pgTable("order_sheets", {
 export const accountEntries = pgTable("account_entries", {
   id: uuid("id").primaryKey(),
   customerId: uuid("customer_id").references(() => customers.id).notNull(),
-  kind: text("kind", { enum: ["opening_debt", "opening_credit"] }).notNull(),
+  kind: text("kind", { enum: ["opening_debt", "opening_credit", "payment_credit"] }).notNull(),
   sourceKey: text("source_key").notNull().unique(),
   reference: text("reference").notNull(),
   amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
@@ -129,4 +130,27 @@ export const accountEntries = pgTable("account_entries", {
   payloadHash: text("payload_hash").notNull(),
   createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-}, t => [index("account_customer_idx").on(t.customerId), check("account_amount_positive", sql`${t.amount} > 0`), check("account_kind_valid", sql`${t.kind} IN ('opening_debt', 'opening_credit')`)]);
+}, t => [index("account_customer_idx").on(t.customerId), check("account_amount_positive", sql`${t.amount} > 0`), check("account_kind_valid", sql`${t.kind} IN ('opening_debt', 'opening_credit', 'payment_credit')`)]);
+
+export const applicationBatches = pgTable("application_batches", {
+  id: uuid("id").primaryKey(), customerId: uuid("customer_id").references(() => customers.id).notNull(),
+  payloadHash: text("payload_hash").notNull(), createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export const creditApplications = pgTable("credit_applications", {
+  id: uuid("id").defaultRandom().primaryKey(), batchId: uuid("batch_id").references(() => applicationBatches.id).notNull(),
+  customerId: uuid("customer_id").references(() => customers.id).notNull(),
+  creditId: uuid("credit_id").references(() => accountEntries.id).notNull(), debtId: uuid("debt_id").references(() => accountEntries.id).notNull(),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+}, t => [check("application_positive", sql`${t.amount} > 0`), unique("application_batch_pair").on(t.batchId, t.creditId, t.debtId), index("application_credit_idx").on(t.creditId), index("application_debt_idx").on(t.debtId)]);
+export const paymentReceipts = pgTable("payment_receipts", {
+  id: uuid("id").primaryKey(), number: integer("number").generatedAlwaysAsIdentity().notNull().unique(),
+  customerId: uuid("customer_id").references(() => customers.id).notNull(), payloadHash: text("payload_hash").notNull(),
+  total: numeric("total", { precision: 18, scale: 2 }).notNull(), businessDate: text("business_date").notNull(),
+  snapshot: jsonb("snapshot").$type<ReceiptSnapshot>().notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(), createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export const paymentComponents = pgTable("payment_components", {
+  id: uuid("id").primaryKey(), receiptId: uuid("receipt_id").references(() => paymentReceipts.id).notNull(),
+  creditId: uuid("credit_id").references(() => accountEntries.id).notNull().unique(), method: text("method", { enum: ["cash", "transfer"] }).notNull(),
+});

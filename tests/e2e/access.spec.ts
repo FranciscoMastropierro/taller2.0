@@ -37,10 +37,10 @@ test("ingreso, acceso directo denegado, revocación y logout", async ({ page }) 
   expect(await response.json()).toMatchObject({ role: "reception" });
   expect((await page.request.get("/api/admin/users")).status()).toBe(403);
   await expect(page.locator("section").filter({ has: page.getByRole("link") })).toHaveCount(4);
-  for (const route of ["/cheques", "/comprobantes"]) {
-    await page.goto(route);
-    await expect(page.getByRole("status")).toContainText("Este módulo está en preparación");
-  }
+  await page.goto("/cheques");
+  await expect(page.getByRole("status")).toContainText("Este módulo está en preparación");
+  await page.goto("/comprobantes");
+  await expect(page.getByRole("heading", { name: "Recibos de cobro", exact: true })).toBeVisible();
   await page.goto("/");
   await page.screenshot({ path: "test-results/portada.png", fullPage: true });
   await db.update(appUsers).set({ sessionVersion: sql`${appUsers.sessionVersion} + 1` }).where(eq(appUsers.id, userId));
