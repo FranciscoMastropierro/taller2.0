@@ -25,5 +25,5 @@ export async function savePayment(mode: "receipt" | "apply", _previous: { error:
   }
   revalidatePath(`/clientes/${customerId}/cuenta`);
   revalidatePath("/comprobantes");
-  redirect(mode === "receipt" ? `/comprobantes/recibos/${id}` : `/clientes/${customerId}/cuenta?aplicado=1`);
+  redirect(mode === "receipt" ? `/comprobantes/recibos/${id}` : `/clientes/${customerId}/cuenta?aplicado=${id}`);
 }

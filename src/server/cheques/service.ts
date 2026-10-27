@@ -36,12 +36,14 @@ export async function moveCheque(db: Database, identity: unknown, input: unknown
   });
 }
 export async function readCheque(db: Database, identity: unknown, id: string) {
-  await authorizeIdentity(db, identity, "finance:read");
-  if (!z.uuid().safeParse(id).success) return null;
-  const [row] = await db.select({ cheque: thirdPartyCheques, amount: accountEntries.amount, customerName: customers.name }).from(thirdPartyCheques).innerJoin(accountEntries, eq(accountEntries.id, thirdPartyCheques.creditId)).innerJoin(customers, eq(customers.id, thirdPartyCheques.customerId)).where(eq(thirdPartyCheques.id, id));
-  if (!row) return null;
-  const events = await db.select().from(chequeMovements).where(eq(chequeMovements.chequeId, id)).orderBy(asc(chequeMovements.version));
-  return { ...row, events };
+  return db.transaction(async tx => {
+    await authorizeIdentity(tx as unknown as Database, identity, "finance:read");
+    if (!z.uuid().safeParse(id).success) return null;
+    const [row] = await tx.select({ cheque: thirdPartyCheques, amount: accountEntries.amount, customerName: customers.name }).from(thirdPartyCheques).innerJoin(accountEntries, eq(accountEntries.id, thirdPartyCheques.creditId)).innerJoin(customers, eq(customers.id, thirdPartyCheques.customerId)).where(eq(thirdPartyCheques.id, id));
+    if (!row) return null;
+    const events = await tx.select().from(chequeMovements).where(eq(chequeMovements.chequeId, id)).orderBy(asc(chequeMovements.version));
+    return { ...row, events };
+  }, { isolationLevel: "repeatable read", accessMode: "read only" });
 }
 export async function listCheques(db: Database, identity: unknown, filters: { status?: ChequeState; bank: string; page: number }) {
   await authorizeIdentity(db, identity, "finance:read");

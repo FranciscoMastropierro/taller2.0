@@ -37,6 +37,7 @@ export async function continueHistoricalOrder(db: Database, identity: unknown, i
       if (existing.creationHash !== creationHash) throw new OrderError("La orden ya se continuó con otros datos. Abrí la orden actual.");
       return existing.id;
     }
+    if (String(history.original.estado_original ?? "").trim().toUpperCase() === "ENTREGADO") throw new OrderError("La ficha anterior ya está entregada. Podés consultarla o imprimirla; para otra reparación creá una nueva orden.");
     const [customer] = await tx.select({ id: customers.id }).from(customers).where(eq(customers.id, data.customerId)).for("share");
     if (!customer) throw new OrderError("El cliente no existe. Seleccioná un cliente válido.");
     const raw = history.original;

@@ -78,3 +78,25 @@
 - Entrega separada de cobros (db15ec9). Instrumentos nuevos se reciben exclusivamente mediante componente de cobro; no importar cartera antigua como actual. Banco/cuenta libradora/número identifican instrumento, sin catálogos nuevos.
 - Estado bancario confirmado manualmente; la app no deposita ni consulta bancos. Rechazo desde cartera/depósito/acreditado es terminal y revierte sólo ese crédito/aplicaciones, con un movimiento contable inmutable.
 - Aplicaciones originales no se borran: se consideran inactivas cuando su componente tiene reversión. Recibo conserva snapshot inicial y enlaza al estado vigente del cheque.
+
+## Constancias y reportes — 27/10/2026
+
+- Entrega separada de cheques (7ad139b). Remito interno/constancia vinculada a evento de entrega, sin generar otra entrega ni cobro. Remito definitivo permanece sujeto a validación operativa/fiscal prevista; no se presenta como factura.
+- Reporte de pendientes usa fecha de incorporación al nuevo sistema, no fecha antigua inferida. Deudores: neto positivo actual, pendiente/crédito separados; no reconstruir saldos a una fecha arbitraria. Cobros: recibos brutos y reversiones por fecha comercial, diferenciados de ventas y fondos bancarios.
+- Impresión del mismo DOM conserva registros/filtros. Si supera 2.000 filas se exige acotar la consulta, sin recorte silencioso. Ventas fiscales sigue pendiente por ausencia de facturas autorizadas.
+
+- Lecturas de cuenta e historial de cheque usan transacción repeatable read de sólo lectura: totales, cartera y movimientos corresponden al mismo corte aun con un cobro/rechazo concurrente. Los comandos mantienen bloqueo de cliente.
+
+- Revisión de continuidad: una ficha cuyo estado original es explícitamente ENTREGADO se consulta/imprime, pero no se promueve como reparación abierta. Backend y UI lo deniegan; otra reparación usa nueva orden. Los estados ambiguos no se reinterpretan.
+
+- UUID de comandos financieros y constancias se fija en estado del componente para conservarlo tras errores/rerenders. Al confirmar una apertura/aplicación se reinicia el ciclo de formulario con token de resultado en URL; un error conserva valores e identidad. E2E cobra tras corregir una sobreaplicación y verifica el mismo UUID.
+
+## Triage de decisiones del 27/10
+
+- Spec bug (006 → 007): papel/escala/talón no estaban cerrados; incorporadas medidas confirmadas por usuario y margen explícito. Identidad nueva/anterior se distingue y el original se conserva. Estados ambiguos no se infieren; prohibición de continuar ENTREGADO explicitada en 007.
+- Spec bug (006 → 008): apertura sin política granular de escritura; resuelto como admin con conciliación explícita, recepción consulta. Lectura coherente de saldo/cartera/historial faltaba en 008; incorporada transacción repeatable read.
+- Spec bug (006 → 009/010): faltaban distribución por componente, identidad física de cheque y reglas de reversión. Contratos separados fijan orden declarado, banco/cuenta/número y reversión inmutable sin borrar aplicaciones.
+- Spec bug (006 → 011/012): pendientes no definía fecha, deudores no definía corte y ventas carecía de facturas. Resueltos incorporación/posición actual/cobros comerciales; ARCA y ventas fiscales pendientes de información, no simulados.
+- Executor bug: valores JSON SQLite de prototipo nulo, nombre de un carácter y correlación SQL no calificada; corregidos y cubiertos con carga real o integración/unitarias.
+- Executor bug: UUID sólo en props no garantizaba estabilidad tras rerender; fijado en estado y probado tras error. Páginas CSS globales podían competir al navegar; aisladas por nombre y PDF revalidado.
+- Executor bug: paralelizar consultas sobre una misma conexión pg emitió deprecación; consultas secuenciales dentro del snapshot. Sin brecha de doctrina identificada ni cambios a skills del usuario.

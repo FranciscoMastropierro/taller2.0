@@ -14,7 +14,7 @@ export function registerLegacyTests(context: () => { db: Database; admin: { id: 
     const { db, admin, passwordHash } = context();
     const [actor] = await db.select().from(appUsers).where(eq(appUsers.id, admin.id));
     const customerRows = [{ id: 990001, legacy_codigo: 990001, cliente: "Cliente histórico sintético", direccion: "Dirección original", telefono: "555", localidad: "Localidad sintética" }];
-    const orderRows = [{ id: 990001, legacy_num_trabajo: 990001, customer_id: 990001, marca: "Motor", modelo: "M1", estado_original: "PROCESO", fecha_ingreso: "0201-01-01T00:00:00", descripcion_ingreso: "Revisar bobinado", tiempo_original: "1,5 hs?", presupuesto_original: "Texto original" }, { id: 990002, legacy_num_trabajo: 990002, customer_id: null, estado_original: "ARCHIVADO" }];
+    const orderRows = [{ id: 990001, legacy_num_trabajo: 990001, customer_id: 990001, marca: "Motor", modelo: "M1", estado_original: "PROCESO", fecha_ingreso: "0201-01-01T00:00:00", descripcion_ingreso: "Revisar bobinado", tiempo_original: "1,5 hs?", presupuesto_original: "Texto original" }, { id: 990002, legacy_num_trabajo: 990002, customer_id: null, estado_original: "ARCHIVADO" }, { id: 990003, legacy_num_trabajo: 990003, customer_id: 990001, estado_original: "ENTREGADO" }];
     const hash = "a".repeat(64);
     let sourceId: string | undefined;
     let customerId: string | undefined;
@@ -41,6 +41,8 @@ export function registerLegacyTests(context: () => { db: Database; admin: { id: 
       await t.test("continuidad concurrente conserva identidad y no duplica; payload diferente rechazado", async () => {
         assert.ok(historyId); assert.ok(customerId);
         const input = { id: historyId, customerId, status: "queued" };
+        const delivered = (await listHistoricalOrders(db, admin, "990003", 1)).rows[0];
+        await assert.rejects(continueHistoricalOrder(db, admin, { id: delivered.id, customerId, status: "queued" }), /ya está entregada/);
         assert.deepEqual(await Promise.all([continueHistoricalOrder(db, admin, input), continueHistoricalOrder(db, admin, input)]), [historyId, historyId]);
         await assert.rejects(continueHistoricalOrder(db, admin, { ...input, status: "completed" }), /otros datos/);
         assert.equal((await listHistoricalOrders(db, admin, "990001", 1)).total, 0);

@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { saveOpening } from "./actions";
 
 export function OpeningForm({ customerId, id, today }: { customerId: string; id: string; today: string }) {
+  const [commandId] = useState(id);
   const [state, action, pending] = useActionState(saveOpening, { error: "" });
   const [values, setValues] = useState({ direction: "debt", amount: "", reference: "", date: today, evidence: "", reconciled: false });
-  return <form action={action} className="mt-6 grid gap-5 sm:grid-cols-2"><input type="hidden" name="id" value={id} /><input type="hidden" name="customerId" value={customerId} />
+  return <form action={action} className="mt-6 grid gap-5 sm:grid-cols-2"><input type="hidden" name="id" value={commandId} /><input type="hidden" name="customerId" value={customerId} />
     <div><label htmlFor="opening-direction" className="mb-2 block text-sm font-semibold">Tipo de apertura</label><select id="opening-direction" name="direction" value={values.direction} onChange={e => setValues(v => ({ ...v, direction: e.target.value }))} className="w-full rounded border border-input p-3"><option value="debt">Deuda pendiente</option><option value="credit">Crédito a favor</option></select></div>
     <div><label htmlFor="opening-amount" className="mb-2 block text-sm font-semibold">Importe ARS</label><Input id="opening-amount" name="amount" inputMode="decimal" required maxLength={16} value={values.amount} onChange={e => setValues(v => ({ ...v, amount: e.target.value }))} /></div>
     <div><label htmlFor="opening-reference" className="mb-2 block text-sm font-semibold">Referencia única de origen</label><Input id="opening-reference" name="reference" required minLength={3} maxLength={100} placeholder="Documento o apertura revisada" value={values.reference} onChange={e => setValues(v => ({ ...v, reference: e.target.value }))} /></div>

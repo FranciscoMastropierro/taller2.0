@@ -32,6 +32,7 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   if (customer) {
     const orders = await db.select({ id: workOrders.id }).from(workOrders).where(eq(workOrders.customerId, customer.id));
+    if (orders.length) await db.delete(schema.deliveryNotes).where(inArray(schema.deliveryNotes.orderId, orders.map(order => order.id)));
     if (orders.length) await db.delete(orderEvents).where(inArray(orderEvents.orderId, orders.map(order => order.id)));
     await db.delete(workOrders).where(eq(workOrders.customerId, customer.id));
     await db.delete(customers).where(eq(customers.id, customer.id));
@@ -92,6 +93,14 @@ test("órdenes: ingreso desde cliente, búsqueda, conflicto, terminación, entre
   await page.getByRole("button", { name: "Confirmar entrega", exact: true }).click();
   await expect(page.getByText("ENTREGADO", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Editar orden", exact: true })).toHaveCount(0);
+  await page.getByText("Constancia interna de entrega", { exact: true }).click();
+  await page.getByLabel("Persona que retiró").fill("Retirante de prueba");
+  await page.getByRole("button", { name: "Guardar constancia interna" }).click();
+  await expect(page).toHaveURL(/\/comprobantes\/remitos\//);
+  await expect(page.getByRole("article")).toContainText(equipment);
+  await expect(page.getByRole("article")).toContainText("Retirante de prueba");
+  await page.screenshot({ path: "test-results/constancia-entrega.png", fullPage: true });
+  await page.goto(detailUrl);
   await page.getByText("Corregir estado", { exact: true }).click();
   await page.getByLabel("Estado corregido").selectOption("completed");
   await page.getByLabel("Motivo de corrección").fill("El cliente aún no retiró el equipo");

@@ -49,6 +49,20 @@ En Clientes se busca también por código anterior. En Órdenes → Histórico s
 
 Las fichas nuevas se preparan desde la orden y se reimprimen desde revisiones guardadas. Seleccionar papel personalizado **150 × 200 mm**, escala **100 %**, sin encabezados/pies del navegador. Talón al pie con número repetido. Probar márgenes reales con la impresora antes del uso operativo. Textos largos pueden continuar en páginas adicionales sin recortarse. PDF sintético de referencia en `test-results/ficha-15x20.pdf` después del E2E de histórico.
 
+### Cuenta, cobros y documentos
+
+Desde la ficha del cliente → **Cuenta corriente**. La copia importada no abrió saldos: administración registra aperturas revisadas con referencia única y respaldo; recepción consulta y opera cobros. Deuda pendiente, crédito disponible, saldo neto y cheques pendientes de cobro se muestran separados.
+
+**Registrar cobro o anticipo** admite efectivo, transferencia y cheques de terceros. Las aplicaciones a obligaciones se eligen explícitamente; sin aplicaciones se conserva crédito disponible. Para utilizar un anticipo, **Aplicar crédito sin nuevo cobro**. El recibo R conserva el contenido al emitirlo; el estado posterior se consulta en cuenta/cheque.
+
+En **Cheques**, registrar sólo depósito, acreditación o rechazo confirmados. No se ejecutan operaciones bancarias. El rechazo revierte ese instrumento y sus aplicaciones una vez, conservando otros componentes del cobro. No se importó la cartera antigua como vigente.
+
+Una orden ya entregada permite preparar **Constancia interna de entrega** (RI). Se vincula a su evento y no registra otra entrega/cobro. Reimpresión desde documentos guardados. El remito definitivo conserva la validación operativa/fiscal pendiente.
+
+En **Comprobantes → Reportes**, pendientes usa fecha de incorporación de la orden al nuevo sistema; deudores muestra posición actual; cobros muestra recibos y reversiones por fecha comercial. Impresión usa el mismo resultado y filtros. Consultas de más de 2.000 filas requieren acotar filtros. Ventas fiscales no se calcula desde recibos/aperturas: queda pendiente de facturas autorizadas.
+
+ARCA no está habilitada. Resolver modalidad, tipos, punto de venta y documentación oficial según tarea 012 antes del adaptador. No configurar producción ni emitir comprobantes reales para probar estos módulos internos.
+
 ```powershell
 npm run lint
 npm run typecheck

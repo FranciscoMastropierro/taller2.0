@@ -98,3 +98,10 @@ Migración/grants aplicados, sin cobros reales. Gate correcto: 11 unitarias, 37 
 Tarea 010 implementada: recepción vinculada a componente de cobro, cartera, depósito, acreditación, rechazo e historial versionado. Rechazo revierte una sola vez el crédito y aplicaciones del instrumento; efectivo y otros componentes se conservan. Depósito/acreditación no agregan crédito. Banco/cuenta/número previenen duplicación; sin integración bancaria ni importación automática de cartera anterior.
 
 Correctos 11 unitarias, 43 casos de integración y 9 E2E, lint/typecheck/build. Migración/grants locales aplicados y captura sintética revisada. No se recibieron ni operaron instrumentos reales. Remitos/reportes y ARCA siguen pendientes.
+
+## Constancias y reportes — cierre 27/10/2026
+Tarea 011 implementada: constancia interna de entrega RI, vinculada a evento y snapshot, sin volver a entregar/cobrar. Comprobantes consulta recibos y constancias; reportes de pendientes, deudores actuales y cobros comerciales imprimen los mismos resultados/filtros. Cobros se separa de ventas fiscales; las reversiones de cheques afectan el neto comercial del período.
+
+Gate final: **11 unitarias, 49 casos de integración, 9 E2E**, lint/typecheck/build correctos. PDF de ficha 15 × 20 cm, capturas de constancia y reporte inspeccionados. Fuente recuperada verificada completa después de las migraciones: cero diferencias en 8.421 clientes/31.233 órdenes. Base local sin asientos/recibos/cheques/constancias de prueba; sólo se cargaron clientes y trabajos.
+
+Pendiente externo: conciliación de aperturas/cartera reales, impresión física, remito definitivo y modalidad/tipos/punto de venta para ARCA. No hay adaptador ni emisión fiscal; ventas fiscales no se simula con recibos. Tarea 012 registra las precondiciones. Sin despliegue ni corte productivo.

@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { roles } from "../../../shared/contracts/auth";
 import type { SheetSnapshot } from "../../../shared/contracts/sheets";
 import type { ReceiptSnapshot } from "../../../shared/contracts/payments";
+import type { DeliverySnapshot } from "../../../shared/contracts/documents";
 export const appRole = pgEnum("app_role", roles);
 export const appUsers = pgTable("app_users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -171,4 +172,11 @@ export const chequeMovements = pgTable("cheque_movements", {
 export const creditReversals = pgTable("credit_reversals", {
   id: uuid("id").primaryKey().references(() => accountEntries.id), creditId: uuid("credit_id").references(() => accountEntries.id).notNull().unique(),
   chequeId: uuid("cheque_id").references(() => thirdPartyCheques.id).notNull().unique(), movementId: uuid("movement_id").references(() => chequeMovements.id).notNull().unique(),
+});
+
+export const deliveryNotes = pgTable("delivery_notes", {
+  id: uuid("id").primaryKey(), number: integer("number").generatedAlwaysAsIdentity().notNull().unique(),
+  orderId: uuid("order_id").references(() => workOrders.id).notNull(), sourceEventId: uuid("source_event_id").references(() => orderEvents.id).notNull().unique(),
+  snapshot: jsonb("snapshot").$type<DeliverySnapshot>().notNull(), payloadHash: text("payload_hash").notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(), createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

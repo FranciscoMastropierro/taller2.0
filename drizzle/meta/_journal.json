@@ -50,6 +50,13 @@
       "when": 1793138691206,
       "tag": "0006_graceful_diamondback",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793139324561,
+      "tag": "0007_solid_romulus",
+      "breakpoints": true
     }
   ]
 }

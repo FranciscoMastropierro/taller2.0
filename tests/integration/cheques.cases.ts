@@ -7,11 +7,13 @@ import { accountEntries, applicationBatches, appUsers, chequeMovements, creditAp
 import { createOpening, readAccount } from "../../src/server/accounts/service";
 import { applyAvailableCredit, createReceipt, readReceipt } from "../../src/server/payments/service";
 import { moveCheque, readCheque } from "../../src/server/cheques/service";
+import { generateReport } from "../../src/server/documents/reports";
 
 export function registerChequeTests(context: () => { db: Database; admin: { id: string; sessionVersion: number }; passwordHash: string }) {
   test("cheques: crédito único, rechazo parcial e historial", async t => {
     const { db, admin, passwordHash } = context();
-    const clients = await db.insert(customers).values(["Cheque mixto", "Cheque duplicado"].map(name => ({ name, createdBy: admin.id, updatedBy: admin.id }))).returning();
+    const suffix = randomUUID().slice(0, 8);
+    const clients = await db.insert(customers).values([`Cheque mixto ${suffix}`, `Cheque duplicado ${suffix}`].map(name => ({ name, createdBy: admin.id, updatedBy: admin.id }))).returning();
     const [excluded] = await db.insert(appUsers).values({ username: `cheque.old.${randomUUID().slice(0, 8)}`, displayName: "Perfil histórico", role: "readonly", passwordHash }).returning();
     const chequeId = randomUUID(), cashId = randomUUID(), debtId = randomUUID(), receiptId = randomUUID();
     const details = { bank: "Banco sintético", account: `CTA-${randomUUID()}`, number: "000123", deliveredBy: "Entregante sintético", issuedOn: "2026-10-20", payableOn: "2026-10-27" };
@@ -69,6 +71,20 @@ export function registerChequeTests(context: () => { db: Database; admin: { id: 
         await moveCheque(db, admin, { ...movement, id: randomUUID(), version: 3, action: "reject" });
         const account = (await readAccount(db, admin, clients[1].id))!;
         assert.equal(account.net, "100.00"); assert.equal(account.pending, "100.00"); assert.equal(account.available, "0.00");
+      });
+      await t.test("reportes: cobros100/rechazo60 = neto40; deudores no confunden ventas", async () => {
+        const collections = await generateReport(db, admin, { type: "collections", customer: clients[0].name, from: "2026-10-27", to: "2026-10-27" });
+        assert.equal(collections.rows.length, 2);
+        assert.equal(collections.totals.find(total => total.label === "Cobros brutos")?.amount, "100.00");
+        assert.equal(collections.totals.find(total => total.label === "Reversiones")?.amount, "60.00");
+        assert.equal(collections.totals.find(total => total.label === "Neto comercial")?.amount, "40.00");
+        const excludedDate = await generateReport(db, admin, { type: "collections", customer: clients[0].name, from: "2026-10-28", to: "2026-10-28" });
+        assert.equal(excludedDate.rows.length, 0);
+        const debtors = await generateReport(db, admin, { type: "debtors", customer: clients[0].name });
+        assert.equal(debtors.rows.length, 1);
+        assert.equal(debtors.totals.find(total => total.label === "Deuda neta")?.amount, "60.00");
+        await assert.rejects(generateReport(db, excluded, { type: "collections" }), /FORBIDDEN/);
+        await assert.rejects(generateReport(db, admin, { type: "sales" }));
       });
       await t.test("runtime no borra historial ni reversión ni cambia identidad bancaria", async () => {
         for (const query of [sql`DELETE FROM cheque_movements`, sql`UPDATE cheque_movements SET reason='otro'`, sql`DELETE FROM credit_reversals`, sql`UPDATE third_party_cheques SET number='otro'`]) {

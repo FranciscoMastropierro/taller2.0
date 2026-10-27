@@ -8,9 +8,10 @@ import { createOpening, AccountError } from "@/server/accounts/service";
 
 export async function saveOpening(_previous: { error: string }, form: FormData) {
   let customerId: string;
+  let openingId: string;
   try {
     const user = await requireUser("finance:read");
-    await createOpening(getDb(), user, Object.fromEntries(form));
+    openingId = await createOpening(getDb(), user, Object.fromEntries(form));
     customerId = String(form.get("customerId"));
   } catch (error) {
     if (error instanceof AccessError) return { error: "Tu sesión venció o no tenés permisos para registrar aperturas." };
@@ -20,5 +21,5 @@ export async function saveOpening(_previous: { error: string }, form: FormData) 
     return { error: "No pudimos confirmar la apertura. Revisá los movimientos antes de reintentar." };
   }
   revalidatePath(`/clientes/${customerId}/cuenta`);
-  redirect(`/clientes/${customerId}/cuenta?guardado=1`);
+  redirect(`/clientes/${customerId}/cuenta?guardado=${openingId}`);
 }
