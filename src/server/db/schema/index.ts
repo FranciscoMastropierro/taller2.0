@@ -1,6 +1,7 @@
 import { check, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { roles } from "../../../shared/contracts/auth";
+import type { SheetSnapshot } from "../../../shared/contracts/sheets";
 export const appRole = pgEnum("app_role", roles);
 export const appUsers = pgTable("app_users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -34,6 +35,8 @@ export const customers = pgTable("customers", {
   email: text("email").default("").notNull(),
   address: text("address").default("").notNull(),
   notes: text("notes").default("").notNull(),
+  legacyCode: integer("legacy_code").unique(),
+  legacyOriginal: jsonb("legacy_original").$type<Record<string, unknown>>(),
   version: integer("version").default(1).notNull(),
   createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
   updatedBy: uuid("updated_by").references(() => appUsers.id).notNull(),
@@ -85,3 +88,31 @@ export const orderEvents = pgTable("order_events", {
   after: jsonb("after").$type<Record<string, unknown>>().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, t => [unique("order_event_version_unique").on(t.orderId, t.version), check("order_event_kind_valid", sql`${t.kind} IN ('created', 'edited', 'technical', 'status', 'correction')`)]);
+
+export const importSources = pgTable("import_sources", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  namespace: text("namespace").notNull().unique(),
+  sha256: text("sha256").notNull(),
+  customerCount: integer("customer_count").notNull(),
+  orderCount: integer("order_count").notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export const historicalOrders = pgTable("historical_orders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sourceId: uuid("source_id").references(() => importSources.id).notNull(),
+  legacyNumber: integer("legacy_number").notNull().unique(),
+  customerId: uuid("customer_id").references(() => customers.id),
+  original: jsonb("original").$type<Record<string, unknown>>().notNull(),
+  continuedOrderId: uuid("continued_order_id").references(() => workOrders.id).unique(),
+}, t => [index("historical_customer_idx").on(t.customerId)]);
+
+export const orderSheets = pgTable("order_sheets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orderId: uuid("order_id").references(() => workOrders.id).notNull(),
+  orderVersion: integer("order_version").notNull(),
+  kind: text("kind", { enum: ["intake", "work"] }).notNull(),
+  snapshot: jsonb("snapshot").$type<SheetSnapshot>().notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, t => [unique("sheet_order_version_kind_unique").on(t.orderId, t.orderVersion, t.kind), check("sheet_kind_valid", sql`${t.kind} IN ('intake', 'work')`)]);

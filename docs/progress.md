@@ -65,4 +65,20 @@ Verificación ejecutada:
 
 App dejada ejecutándose localmente en puerto 3000. Base de desarrollo sin cuenta por defecto: el responsable crea su usuario con `npm run admin -- bootstrap`, por terminal y con contraseña oculta. La cuenta sintética de pruebas vive sólo en base de pruebas.
 
-Próximo entregable: `docs/tasks/003a-offline.md`. Offline, clientes, órdenes, importador, finanzas y ARCA no se consideran implementados. El equipo real, privilegios en Neon, hosting y producción conservan sus gates por etapa.
+## Acceso administrativo — 26/10/2026
+
+Fase 1 de tarea 006 implementada en `feat/acceso-administrativo`: sólo admin/reception pueden autenticar y autorizar sesiones o escribir órdenes. Los roles históricos conservan sus datos pero no tienen permisos de aplicación. Recepción conserva sus límites de corrección y gestión de cuentas.
+
+Verificación: lint, typecheck, 7 unitarias, 21 casos de integración PostgreSQL, build y 5 E2E correctos. Inspección visual de escritorio/móvil realizada. Detalles y archivos modificados en `docs/tasks/006-continuidad-administrativa.md`. Cheques, Comprobantes y demás entregas de fase 2 siguen pendientes. Sin despliegue.
+
+La referencia anterior a `003a-offline.md` queda sustituida por las entregas online de tareas 004–007; offline fue retirado del alcance.
+
+## Impresión e histórico — 27/10/2026
+
+Ficha de ingreso/trabajo según formato anterior, papel **15 × 20 cm**, número repetido en talón para cortar y pegar al equipo. Snapshots inmutables por revisión; reimpresión sin movimientos ni cambios de estado. Impresión directa de históricos sin reabrirlos.
+
+Cargada la SQLite indicada por el usuario en la base local: **8.421 clientes y 31.233 órdenes**. Clientes reutilizables con código anterior, originales íntegros y sin fusiones por nombre. Histórico paginado, búsqueda por número viejo y continuidad explícita de reparaciones abiertas conservando UUID y número anterior. Referencias huérfanas se mantienen sin inventar clientes. No se convierten estados ambiguos, tiempos ni presupuestos automáticamente.
+
+Verificación: 9 unitarias, 26 casos de integración y 6 E2E correctos; lint/typecheck/build correctos. Reimportación idempotente y comparación completa SQLite/PostgreSQL por runtime: cero diferencias. PDF sintético de una página 15 × 20 cm renderizado e inspeccionado. Calibración con impresora física pendiente.
+
+Cuenta corriente/aperturas conciliadas, cobros/anticipos, cheques y remitos/reportes continúan en entregas separadas. ARCA espera confirmación de modalidad fiscal, comprobantes y punto de venta. Sin despliegue ni apertura automática de deuda.

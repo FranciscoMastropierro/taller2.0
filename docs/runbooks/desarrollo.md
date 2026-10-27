@@ -13,7 +13,7 @@ Copy-Item .env.example .env.local
 
 Si `.env.local` ya existe, conservarlo: contiene el secreto local generado durante esta entrega. Completar las variables según `.env.example`. No compartir ese archivo. Generar AUTH_SECRET con 32 bytes aleatorios; AUTH_URL debe coincidir con origen y puerto. No habilitar confianza en headers de proxy sin configurar previamente el hosting.
 
-En este equipo ya existe el contenedor `galante-v2-dev-db`, publicado sólo en `127.0.0.1:55448`, con bases `galante_dev` y `galante_test`. Para volver a iniciarlo: `docker start galante-v2-dev-db`. Son datos sintéticos; no conectar fuentes del taller. El contenedor conserva sus datos mientras exista; no es un respaldo.
+En este equipo existe el contenedor `galante-v2-dev-db`, publicado sólo en `127.0.0.1:55448`, con bases `galante_dev` y `galante_test`. Para iniciarlo: `docker start galante-v2-dev-db`. Desde el 27/10/2026, por pedido del usuario, `galante_dev` contiene los clientes y trabajos recuperados de SQLite; `galante_test` continúa separada y usa fixtures sintéticas. El contenedor conserva datos mientras exista; no es un respaldo.
 
 Para reproducir en otro equipo, crear PostgreSQL vacío con usuario propietario y dos bases separadas. TEST_DATABASE_URL debe terminar en `_test`; integración crea registros sintéticos y un rol sin login para comprobar privilegios. El usuario de pruebas requiere capacidad de crear ese rol. No ejecutar pruebas contra producción.
 
@@ -32,6 +32,22 @@ En cada ambiente, crear rol runtime `galante_runtime` sin permisos de propietari
 En este equipo DATABASE_URL ya utiliza `galante_runtime` con grants limitados; MIGRATION_DATABASE_URL conserva el propietario para preparar la base. Antes de conectar Neon, recrear esa separación por ambiente. No se creó proyecto Neon, hosting ni credenciales externas en esta entrega.
 
 ## Verificar
+
+### Importación recuperada e impresión
+
+Fuente autorizada: `../outputs/sqlite/galante_analisis.sqlite`, abierta sólo para lectura. Migrar y ejecutar grants antes de importar. Usar un administrador activo existente para la auditoría; no se crean cuentas ni se solicitan contraseñas en argumentos.
+
+```powershell
+npm run import:legacy -- --source=../outputs/sqlite/galante_analisis.sqlite
+npm run import:legacy -- --source=../outputs/sqlite/galante_analisis.sqlite --apply --actor=USUARIO_ADMIN_EXISTENTE
+npm run import:legacy -- --source=../outputs/sqlite/galante_analisis.sqlite --verify
+```
+
+Sin `--apply`/`--verify` sólo valida fuente y cuenta registros. `--apply` usa MIGRATION_DATABASE_URL con transacción; un mismo hash retorna `already_imported`. Otra copia bajo el mismo origen se rechaza para no sobrescribir cambios. `--verify` usa DATABASE_URL runtime y compara cada original y vínculo; esperado 8.421 clientes, 31.233 órdenes y cero diferencias. Logs sin datos de clientes ni conexiones.
+
+En Clientes se busca también por código anterior. En Órdenes → Histórico se buscan fichas viejas, se imprimen directamente o se continúa una reparación abierta eligiendo cliente y estado. La continuidad usa el mismo UUID y conserva el número viejo; desde la bandeja actual se busca también por ese número. Presupuesto, tiempo y estados ambiguos no se infieren.
+
+Las fichas nuevas se preparan desde la orden y se reimprimen desde revisiones guardadas. Seleccionar papel personalizado **150 × 200 mm**, escala **100 %**, sin encabezados/pies del navegador. Talón al pie con número repetido. Probar márgenes reales con la impresora antes del uso operativo. Textos largos pueden continuar en páginas adicionales sin recortarse. PDF sintético de referencia en `test-results/ficha-15x20.pdf` después del E2E de histórico.
 
 ```powershell
 npm run lint

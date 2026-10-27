@@ -30,17 +30,11 @@ export function registerOrderTests(context: () => { db: Database; admin: { id: s
         assert.equal(result?.events.length, 1);
         await assert.rejects(createOrder(db, reception, { ...input, equipment: "Otro motor" }), /otros datos/);
       });
-      await t.test("sólo el técnico asignado consulta; finanzas e historial se filtran", async () => {
-        const result = await readOrder(db, tech, input.id);
-        assert.equal(result?.order.budget, null);
-        assert.equal(result?.order.approval, "");
-        assert.equal("budget" in result!.events[0].after, false);
-        assert.equal("approval" in result!.events[0].after, false);
-        assert.equal(await readOrder(db, other, input.id), null);
-        assert.equal((await listOrders(db, other, { q: "", location: "", page: 1, customerId: customer.id })).total, 0);
-        const view = await readOrder(db, readonly, input.id);
-        assert.equal(view?.order.budget, null);
-        assert.equal("budget" in view!.events[0].after, false);
+      await t.test("historical roles cannot read orders or history", async () => {
+        for (const identity of [tech, other, readonly]) {
+          await assert.rejects(readOrder(db, identity, input.id), /FORBIDDEN/);
+          await assert.rejects(listOrders(db, identity, { q: "", location: "", page: 1 }), /FORBIDDEN/);
+        }
       });
       await t.test("consulta/técnico no ingresan ni avanzan; actor de payload no eleva permisos", async () => {
         await assert.rejects(createOrder(db, tech, { ...input, id: randomUUID(), role: "admin" }), /FORBIDDEN/);
@@ -50,7 +44,7 @@ export function registerOrderTests(context: () => { db: Database; admin: { id: s
         await assert.rejects(createOrder(db, { ...reception, sessionVersion: 9999 }, { ...input, id: randomUUID() }), /UNAUTHORIZED/);
       });
       await t.test("actualización técnica ignora campos financieros/administrativos inyectados", async () => {
-        await editOrder(db, tech, { ...input, version: 1, diagnosis: "Bobina dañada", workDone: "Revisión inicial", workedMinutes: 35, budget: "1", assignedTo: other.id, status: "delivered" }, true);
+        await editOrder(db, admin, { ...input, version: 1, diagnosis: "Bobina dañada", workDone: "Revisión inicial", workedMinutes: 35, budget: "1", assignedTo: other.id, status: "delivered" }, true);
         const result = await readOrder(db, admin, input.id);
         assert.equal(result?.order.diagnosis, "Bobina dañada");
         assert.equal(result?.order.workedMinutes, 35);
@@ -61,8 +55,8 @@ export function registerOrderTests(context: () => { db: Database; admin: { id: s
       });
       await t.test("dos ediciones de una versión: un éxito y un conflicto sin evento extra", async () => {
         const results = await Promise.allSettled([
-          editOrder(db, tech, { ...input, version: 2, diagnosis: "Propuesta A" }, true),
-          editOrder(db, tech, { ...input, version: 2, diagnosis: "Propuesta B" }, true),
+          editOrder(db, admin, { ...input, version: 2, diagnosis: "Propuesta A" }, true),
+          editOrder(db, admin, { ...input, version: 2, diagnosis: "Propuesta B" }, true),
         ]);
         assert.equal(results.filter(result => result.status === "fulfilled").length, 1);
         const rejected = results.find(result => result.status === "rejected") as PromiseRejectedResult;
@@ -108,8 +102,8 @@ export function registerOrderTests(context: () => { db: Database; admin: { id: s
       });
       await t.test("edición conserva cliente y reasignación quita acceso al técnico anterior", async () => {
         await editOrder(db, reception, { ...input, version: 6, customerId: randomUUID(), assignedTo: other.id, location: "Estante B", budget: "0,10" });
-        assert.equal(await readOrder(db, tech, input.id), null);
-        const result = await readOrder(db, other, input.id);
+        await assert.rejects(readOrder(db, tech, input.id), /FORBIDDEN/);
+        const result = await readOrder(db, reception, input.id);
         assert.equal(result?.order.customerId, customer.id);
         assert.equal(result?.order.location, "Estante B");
         const found = await listOrders(db, reception, { q: "Motor", location: "Estante", status: "queued", customerId: customer.id, page: 1 });

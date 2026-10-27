@@ -12,6 +12,7 @@ import { getDatabaseUrl } from "../../src/server/env";
 import { authenticate, authorizeIdentity, changeAccess, consumeLoginAttempt, createInitialAdmin, recoverUser } from "../../src/server/auth/service";
 import { hashPassword } from "../../src/server/auth/password";
 import { registerOrderTests } from "./orders.cases";
+import { registerLegacyTests } from "./legacy.cases";
 config({ path: ".env.local", quiet: true });
 // Una DB nombrada explícitamente para pruebas. Nunca resetear esquemas compartidos.
 const url = getDatabaseUrl("TEST_DATABASE_URL");
@@ -37,7 +38,7 @@ before(async () => {
   const [owner] = await db.select().from(schema.appUsers).where(eq(schema.appUsers.username, "test.admin"));
   admin = { id: owner.id, sessionVersion: owner.sessionVersion };
   passwordHash = await hashPassword("synthetic-tech-password");
-  const [technician] = await db.insert(schema.appUsers).values({ username: `tech.${suffix}`, displayName: "Técnico sintético", passwordHash, role: "technician" }).returning();
+  const [technician] = await db.insert(schema.appUsers).values({ username: `tech.${suffix}`, displayName: "Técnico sintético", passwordHash, role: "reception" }).returning();
   tech = { id: technician.id, sessionVersion: technician.sessionVersion };
 });
 after(async () => { await pool.end(); });
@@ -84,10 +85,10 @@ test("desactivar usuario y cambiar rol invalida token anterior", async () => {
   await assert.rejects(authorizeIdentity(db, tech), { message: "UNAUTHORIZED" });
   assert.equal(await authenticate(db, { username: `tech.${suffix}`, password: "synthetic-tech-password" }, secret), null);
   await changeAccess(db, admin, tech.id, { role: "readonly", active: true });
-  const session = await authenticate(db, { username: `tech.${suffix}`, password: "synthetic-tech-password" }, secret);
-  assert.ok(session);
-  assert.equal((await authorizeIdentity(db, session)).role, "readonly");
-  await assert.rejects(authorizeIdentity(db, session, "finance:read"), { message: "FORBIDDEN" });
+  assert.equal(await authenticate(db, { username: `tech.${suffix}`, password: "synthetic-tech-password" }, secret), null);
+  const [current] = await db.select().from(schema.appUsers).where(eq(schema.appUsers.id, tech.id));
+  await assert.rejects(authorizeIdentity(db, current), /FORBIDDEN/);
+  await changeAccess(db, admin, tech.id, { role: "reception", active: true });
 });
 test("recuperar contraseña revoca sesión y deja auditoría", async () => {
   const session = await authenticate(db, { username: `tech.${suffix}`, password: "synthetic-tech-password" }, secret);
@@ -105,3 +106,16 @@ test("último administrador protegido y comando no autorizado sin cambios", asyn
 });
 
 registerOrderTests(() => ({ db, admin, passwordHash }));
+registerLegacyTests(() => ({ db, admin, passwordHash }));
+
+test("excluded roles reject valid passwords and previous identities without modifying data", async () => {
+  for (const role of ["technician", "readonly"] as const) {
+    const [user] = await db.insert(schema.appUsers).values({ username: `excluded.${role}.${suffix}`, displayName: "Historical", role, passwordHash }).returning();
+    try {
+      assert.equal(await authenticate(db, { username: user.username, password: "synthetic-tech-password" }, secret), null);
+      for (const permission of ["work:read", "customers:write", "finance:read", "users:manage"] as const) await assert.rejects(authorizeIdentity(db, { ...user, role: "admin" }, permission), /FORBIDDEN/);
+      const [preserved] = await db.select().from(schema.appUsers).where(eq(schema.appUsers.id, user.id));
+      assert.deepEqual(preserved, user);
+    } finally { await db.delete(schema.appUsers).where(eq(schema.appUsers.id, user.id)); }
+  }
+});

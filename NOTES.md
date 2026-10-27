@@ -1,5 +1,17 @@
 # Decisiones — 21/10/2026
 
+## Impresión e histórico — 27/10/2026
+
+- Usuario autoriza usar la SQLite recuperada para cargar la nueva BD y confirma formato de ficha anterior. Se conserva la distribución de la foto; papel físico no identificado, tamaño automático en diálogo y ensayo físico pendiente.
+- Importación de clientes/histórico primero; no importar saldos ni inferir deuda de esta copia. Los estados ambiguos permanecen originales; continuar requiere selección administrativa de estado/cliente. No convertir tiempos anteriores a minutos.
+- Identidad por fuente/código anterior, nunca por nombre; SHA fija la copia. Reimportación diferente se rechaza y requiere contrato de actualización. Reintento idéntico no pisa ediciones nuevas.
+- 42 clientes sin nombre reciben rótulo explícito de dato faltante. Se conserva JSON original completo. Órdenes huérfanas se consultan y requieren cliente real para continuar, sin fabricar clientes.
+- Fichas: snapshot inmutable por revisión y tipo, sin nueva secuencia fiscal. Número anterior e interno se distinguen; reimpresión no entrega, cobra ni altera orden.
+- Medidas confirmadas después: 15 cm ancho × 20 cm alto, número repetido arriba/al pie para cortar y pegar en el equipo. CSS fija ese papel, margen de 8 mm; calibración real pendiente. PDF sintético y render en test-results (no versionados).
+- Impresión directa de históricos sin promoverlos; una reparación entregada no debe reabrirse sólo para reimprimir. Presupuesto/tiempo antiguos se muestran literalmente.
+- Node SQLite entrega objetos sin prototipo; Drizzle los rechaza como valores JSON. Normalizar objetos al leer y en la frontera del importador. Intentos fallidos revertidos; regresión con objetos sin prototipo en integración.
+- Modalidad ARCA, tipos y punto de venta no confirmados por el usuario. No activar emisión ni elegir impresora fiscal/servicios web por suposición.
+
 ## Clientes — 22/10/2026
 
 - Pedido vigente: retirar guardado offline y avanzar por módulos online; etapa 3A deja de ser requisito. Los planes originales quedan como antecedentes.
@@ -40,3 +52,10 @@
 - Cuatro tarjetas fijas: Clientes, Órdenes de trabajo, Cheques y Comprobantes; estas últimas agrupan cartera, remitos/listados y ARCA, con funciones pendientes.
 - Esta entrega crea estructura visual y actualiza el plan. No modifica roles persistidos ni borra referencias a usuarios/asignaciones existentes; la restricción efectiva de perfiles anteriores queda especificada en tarea 006 para el siguiente agente.
 - Las pantallas pendientes usan el permiso existente finance:read para no abrir nuevas superficies financieras a perfiles antiguos. No hay importes de ejemplo, cobros simulados ni botones de emisión activos.
+
+## Acceso administrativo — fase 1 — 26/10/2026
+
+- Rama feat/acceso-administrativo desde main limpio (el estado real difiere del antecedente de la tarea).
+- Perfiles excluidos con identidad vigente reciben FORBIDDEN (403); identidad inválida/inactiva/versionada sigue UNAUTHORIZED (401), conservando convenciones de cada entrada.
+- Asignaciones técnicas históricas y su validación permanecen como datos operativos. No se crean cuentas ni se cambian enum, hashes o filas existentes para restringir el acceso.
+- El seguimiento técnico interno conserva su contrato para administración; las pruebas válidas pasan a admin y las identidades técnicas se prueban como denegadas.

@@ -3,7 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db";
 import { appUsers, accessAudit } from "../db/schema";
-import { loginSchema, newPasswordSchema, roles } from "../../shared/contracts/auth";
+import { isAppRole, loginSchema, newPasswordSchema, roles } from "../../shared/contracts/auth";
 import { dummyHash, hashPassword, verifyPassword } from "./password";
 import { AccessError, can, type Permission } from "./permissions";
 
@@ -26,7 +26,7 @@ export async function authenticate(db: Database, input: unknown, secret: string)
   if (!await consumeLoginAttempt(db, username, secret)) return null;
   const [user] = await db.select().from(appUsers).where(eq(appUsers.username, username)).limit(1);
   const valid = await verifyPassword(user?.passwordHash ?? await dummyHash(), password);
-  if (!user || !valid || user.active !== 1) return null;
+  if (!user || !valid || user.active !== 1 || !isAppRole(user.role)) return null;
   return { id: user.id, name: user.displayName, sessionVersion: user.sessionVersion };
 }
 
@@ -37,7 +37,7 @@ export async function authorizeIdentity(db: Database, identity: unknown, permiss
   const [user] = await db.select({ id: appUsers.id, username: appUsers.username, displayName: appUsers.displayName, role: appUsers.role, active: appUsers.active, sessionVersion: appUsers.sessionVersion })
     .from(appUsers).where(and(eq(appUsers.id, parsed.data.id), eq(appUsers.sessionVersion, parsed.data.sessionVersion), eq(appUsers.active, 1))).limit(1);
   if (!user) throw new AccessError(401);
-  if (!can(user.role, permission)) throw new AccessError(403);
+  if (!isAppRole(user.role) || !can(user.role, permission)) throw new AccessError(403);
   return user;
 }
 

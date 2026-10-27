@@ -70,8 +70,8 @@ Log every judgment call — anything this task didn't decide and you had to — 
 
 Preparar un contrato propio por entrega antes de implementar. Reutilizar los contratos comerciales existentes; no inventar saldos de deuda desde órdenes o facturas históricas sin conciliación.
 
-1. **Impresión de fichas:** definir numeración/papel y representación de la orden; reimprimir no cambia estado ni crea movimientos. Continúa pendiente.
-2. **Importación y consulta histórica:** obtener copia actual, mapeos e identidad de origen; conservar clientes reutilizables y órdenes abiertas sin duplicación; conciliar obligaciones. Continúa pendiente.
+1. **Impresión de fichas:** implementada el 27/10 en tarea 007. Usuario confirmó 15 × 20 cm, distribución anterior y número repetido en talón. Fichas actuales con snapshot por revisión; históricos imprimibles sin reabrir. Reimprimir no cambia estado ni crea movimientos. Ensayo con impresora física pendiente.
+2. **Importación y consulta histórica:** implementada sobre la SQLite recuperada que autorizó el usuario el 27/10: 8.421 clientes reutilizables, 31.233 trabajos consultables, búsqueda por número anterior y continuidad explícita sin duplicación. Fuente/hash/originales conservados y verificados completos. Copia actual, conciliación de obligaciones y corte definitivo permanecen pendientes; no se cargaron saldos.
 3. **Cuenta corriente y apertura:** libro por cliente y obligaciones conciliadas, saldo/pendientes/crédito separados. Depende del modelo de obligaciones, no del estado de la reparación. Continúa pendiente.
 4. **Cobros, anticipos y recibos:** componentes de pago, aplicación parcial explícita a obligaciones del mismo cliente y excedentes como crédito. Los recibos pertenecen al ámbito de Comprobantes; no son facturas. Depende de cuenta corriente. Continúa pendiente.
 5. **Cheques — `/cheques`:** cartera de terceros, cliente/entregante, banco, número, importe/moneda, fechas y vínculo al componente de cobro; movimientos de depósito/acreditación/rechazo con historial. Recibir acredita comercialmente una vez; acreditar no duplica; rechazar revierte sólo el componente del cheque y sus aplicaciones una vez. Depende de cobros y cuenta corriente. Sin eCheq/integración bancaria por defecto. Continúa pendiente.
@@ -106,6 +106,16 @@ Fase 2 tendrá gates por contrato, además de mantener los anteriores. No marcar
 
 Inspección visual en escritorio/móvil. Capturas informativas, sin gate por geometría o velocidad. Confirmar impresión real y homologación en sus etapas correspondientes.
 
-## Revisión de especificación
+## Ejecución de fase 1 — 26/10/2026
 
-Revisado con spec-review el 26/10/2026 contra auth, permisos, actor de órdenes y rutas nuevas. Corregida la ambigüedad entre plan actualizado y acceso ya restringido: **fase 1 sigue pendiente**. Separada la estructura ya entregada de los módulos financieros pendientes. Sin cambios destructivos de datos ni módulo de usuarios/mesas encubierto.
+- Rama `feat/acceso-administrativo` creada desde `main` limpio; el estado anterior del paso 0 ya no aplicaba.
+- Implementados `appRoles`/`isAppRole`, rechazo en login y sesión previa, permisos vacíos para perfiles históricos y control explícito del actor transaccional de órdenes.
+- Archivos de código: `src/shared/contracts/auth.ts`, `src/server/auth/permissions.ts`, `src/server/auth/service.ts`, `src/server/orders/service.ts`. Sin migraciones ni cambios de datos históricos.
+- Pruebas adaptadas: `tests/auth.test.ts`, `tests/integration/access.test.ts`, `tests/integration/orders.cases.ts`, `tests/e2e/access.spec.ts`, `tests/e2e/customers.spec.ts`, `tests/e2e/orders.spec.ts`.
+- Correctos: lint, typecheck, 7 unitarias, 21 casos de integración PostgreSQL y build. Corregido un error de codificación UTF-8 durante la edición antes del build exitoso. Unitarias repetidas fuera del sandbox por fallo del runtime al consultar el usuario del sistema.
+- E2E: 5/5 correctos sobre build de producción (21,5 s), con cierre exitoso del servidor fuera del sandbox. Se usó configuración temporal para evitar el servidor dev abierto del usuario; configuración restaurada después. El primer intento en sandbox pasó los casos pero bloqueó el cierre del servidor.
+- Capturas de portada de escritorio y ficha móvil inspeccionadas, sin problemas visuales observados. Cheques/Comprobantes conservan protección y estado pendiente. La fase 2 sigue pendiente con contratos separados.
+
+## Revisión de especificación (anterior a la ejecución)
+
+Revisado con spec-review el 26/10/2026 contra auth, permisos, actor de órdenes y rutas nuevas. En ese momento la fase 1 seguía pendiente; su ejecución se registra arriba. Separada la estructura ya entregada de los módulos financieros pendientes. Sin cambios destructivos de datos ni módulo de usuarios/mesas encubierto.

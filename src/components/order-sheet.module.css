@@ -1,0 +1,25 @@
+.toolbar { max-width: 680px; margin: 24px auto; padding: 0 16px; }
+.paper { width: 150mm; min-height: 200mm; padding: 8mm; margin: 24px auto; background: white; color: black; font-family: Arial, sans-serif; font-size: 10pt; display: flex; flex-direction: column; box-shadow: 0 2px 16px #0002; overflow-wrap: anywhere; }
+.heading { display: flex; justify-content: space-between; align-items: start; gap: 8px; margin-bottom: 6mm; }
+.number { font-size: 28pt; line-height: 1; font-weight: 700; }
+.right { text-align: right; font-size: 9pt; }
+.line { margin: 2mm 0; white-space: pre-wrap; }
+.row { display: flex; justify-content: space-between; gap: 4mm; }
+.section { border-top: 1px solid black; margin-top: 3mm; padding-top: 2mm; }
+.title { text-align: center; text-decoration: underline; font-size: 10pt; margin: 2mm 0; }
+.work { min-height: 35mm; white-space: pre-wrap; margin: 3mm 0; }
+.space { flex: 1; min-height: 10mm; }
+.metadata { font-size: 7pt; margin-top: 3mm; color: #444; }
+.stub { border-top: 1px dashed black; padding-top: 3mm; margin-top: 3mm; break-inside: avoid; display: flex; align-items: center; gap: 5mm; }
+.stub small { font-size: 7pt; }
+@media screen and (max-width: 600px) {
+  .paper { width: calc(100% - 24px); padding: 6mm; }
+  .row { flex-wrap: wrap; }
+  .number { font-size: 24pt; }
+}
+@page { size: 150mm 200mm; margin: 8mm; }
+@media print {
+  .toolbar { display: none; }
+  .paper { width: auto; min-height: 184mm; padding: 0; margin: 0; box-shadow: none; font-size: 10pt; }
+  .heading { break-inside: avoid; }
+}

@@ -9,4 +9,7 @@ GRANT USAGE ON SEQUENCE public.customers_code_seq TO galante_runtime;
 GRANT SELECT, INSERT, UPDATE ON public.work_orders TO galante_runtime;
 GRANT USAGE ON SEQUENCE public.work_orders_number_seq TO galante_runtime;
 GRANT SELECT, INSERT ON public.order_events TO galante_runtime;
+GRANT SELECT ON public.import_sources TO galante_runtime;
+GRANT SELECT, UPDATE (continued_order_id) ON public.historical_orders TO galante_runtime;
+GRANT SELECT, INSERT ON public.order_sheets TO galante_runtime;
 -- Sin DELETE, TRUNCATE, CREATE ni acceso al esquema drizzle de migraciones.

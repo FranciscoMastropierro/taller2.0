@@ -22,6 +22,13 @@
       "when": 1793041990125,
       "tag": "0002_bitter_lady_vermin",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793124353630,
+      "tag": "0003_curious_the_hunter",
+      "breakpoints": true
     }
   ]
 }
