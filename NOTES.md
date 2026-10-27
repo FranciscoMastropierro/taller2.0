@@ -59,3 +59,9 @@
 - Perfiles excluidos con identidad vigente reciben FORBIDDEN (403); identidad inválida/inactiva/versionada sigue UNAUTHORIZED (401), conservando convenciones de cada entrada.
 - Asignaciones técnicas históricas y su validación permanecen como datos operativos. No se crean cuentas ni se cambian enum, hashes o filas existentes para restringir el acceso.
 - El seguimiento técnico interno conserva su contrato para administración; las pruebas válidas pasan a admin y las identidades técnicas se prueban como denegadas.
+
+## Cuenta corriente — 27/10/2026
+
+- Entrega separada de fichas/histórico (commit 9764b20). Aperturas manuales sólo admin, con respaldo y confirmación de conciliación; recepción consulta. No se agregan saldos desde la fuente recuperada.
+- Libro inmutable con origen único global, UUID estable y hash canónico para reintentos. Sólo ARS. Deuda pendiente/crédito disponible se mantienen separados hasta aplicaciones explícitas.
+- La validación transaccional del actor se comparte en auth/service como authorizeActor; conserva bloqueo de usuario, activo, perfil y sessionVersion, sin depender del módulo de órdenes.

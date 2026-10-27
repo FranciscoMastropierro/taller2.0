@@ -116,3 +116,17 @@ export const orderSheets = pgTable("order_sheets", {
   createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, t => [unique("sheet_order_version_kind_unique").on(t.orderId, t.orderVersion, t.kind), check("sheet_kind_valid", sql`${t.kind} IN ('intake', 'work')`)]);
+
+export const accountEntries = pgTable("account_entries", {
+  id: uuid("id").primaryKey(),
+  customerId: uuid("customer_id").references(() => customers.id).notNull(),
+  kind: text("kind", { enum: ["opening_debt", "opening_credit"] }).notNull(),
+  sourceKey: text("source_key").notNull().unique(),
+  reference: text("reference").notNull(),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  businessDate: text("business_date").notNull(),
+  evidence: text("evidence").notNull(),
+  payloadHash: text("payload_hash").notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, t => [index("account_customer_idx").on(t.customerId), check("account_amount_positive", sql`${t.amount} > 0`), check("account_kind_valid", sql`${t.kind} IN ('opening_debt', 'opening_credit')`)]);

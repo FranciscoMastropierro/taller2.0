@@ -3,8 +3,8 @@ import { and, count, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db";
 import { customers, historicalOrders, orderEvents, workOrders } from "../db/schema";
-import { authorizeIdentity } from "../auth/service";
-import { OrderError, orderActor } from "../orders/service";
+import { authorizeIdentity, authorizeActor } from "../auth/service";
+import { OrderError } from "../orders/service";
 
 export async function listHistoricalOrders(db: Database, identity: unknown, q: string, page: number, customerId?: string) {
   await authorizeIdentity(db, identity);
@@ -29,7 +29,7 @@ export async function continueHistoricalOrder(db: Database, identity: unknown, i
   const data = continuationSchema.parse(input);
   const creationHash = createHash("sha256").update(JSON.stringify(data)).digest("hex");
   return db.transaction(async tx => {
-    const user = await orderActor(tx, identity);
+    const user = await authorizeActor(tx, identity);
     const [history] = await tx.select().from(historicalOrders).where(eq(historicalOrders.id, data.id)).for("update");
     if (!history) throw new OrderError("La orden anterior no existe.");
     if (history.continuedOrderId) {

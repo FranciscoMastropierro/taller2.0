@@ -3,23 +3,12 @@ import { and, asc, count, desc, eq, getTableColumns, ilike, or, sql } from "driz
 import { z } from "zod";
 import type { Database } from "../db";
 import { appUsers, customers, orderEvents, workOrders } from "../db/schema";
-import { authorizeIdentity } from "../auth/service";
+import { authorizeIdentity, authorizeActor } from "../auth/service";
 import { AccessError, can } from "../auth/permissions";
 import { newOrderSchema, nextStatus, orderFieldsSchema, orderVersionSchema, statusChangeSchema, technicalSchema, type OrderStatus } from "../../shared/contracts/orders";
 
-import { isAppRole } from "../../shared/contracts/auth";
-
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
-const identitySchema = z.object({ id: z.uuid(), sessionVersion: z.number().int().positive() });
 export class OrderError extends Error {}
-export async function orderActor(tx: Transaction, identity: unknown) {
-  const parsed = identitySchema.safeParse(identity);
-  if (!parsed.success) throw new AccessError(401);
-  const [user] = await tx.select({ id: appUsers.id, role: appUsers.role }).from(appUsers).where(and(eq(appUsers.id, parsed.data.id), eq(appUsers.sessionVersion, parsed.data.sessionVersion), eq(appUsers.active, 1))).for("share");
-  if (!user) throw new AccessError(401);
-  if (!isAppRole(user.role)) throw new AccessError(403);
-  return user;
-}
 async function assignee(tx: Transaction, id: string | null) {
   if (!id) return;
   const [user] = await tx.select({ id: appUsers.id }).from(appUsers).where(and(eq(appUsers.id, id), eq(appUsers.active, 1), or(eq(appUsers.role, "technician"), eq(appUsers.role, "admin")))).for("share");
@@ -37,7 +26,7 @@ async function record(tx: Transaction, userId: string, kind: typeof orderEvents.
 export async function createOrder(db: Database, identity: unknown, input: unknown) {
   const data = newOrderSchema.parse(input);
   return db.transaction(async tx => {
-    const user = await orderActor(tx, identity);
+    const user = await authorizeActor(tx, identity);
     if (!can(user.role, "work:write")) throw new AccessError(403);
     const hash = createHash("sha256").update(JSON.stringify(data)).digest("hex");
     const [previous] = await tx.select({ id: workOrders.id, createdBy: workOrders.createdBy, creationHash: workOrders.creationHash }).from(workOrders).where(eq(workOrders.id, data.id));
@@ -63,7 +52,7 @@ export async function editOrder(db: Database, identity: unknown, input: unknown,
   const version = orderVersionSchema.parse(input);
   const fields = technical ? technicalSchema.parse(input) : orderFieldsSchema.parse(input);
   return db.transaction(async tx => {
-    const user = await orderActor(tx, identity);
+    const user = await authorizeActor(tx, identity);
     const [before] = await tx.select().from(workOrders).where(eq(workOrders.id, version.id)).for("update");
     if (!before) throw new OrderError("La orden no existe.");
     if (technical ? !can(user.role, "work:technical") || (user.role === "technician" && before.assignedTo !== user.id) : !can(user.role, "work:write")) throw new AccessError(403);
@@ -79,7 +68,7 @@ export async function editOrder(db: Database, identity: unknown, input: unknown,
 export async function changeOrderStatus(db: Database, identity: unknown, input: unknown, correction = false) {
   const data = statusChangeSchema.parse(input);
   return db.transaction(async tx => {
-    const user = await orderActor(tx, identity);
+    const user = await authorizeActor(tx, identity);
     if (!can(user.role, correction ? "work:correct" : "work:write")) throw new AccessError(403);
     if (correction && data.reason.length < 5) throw new OrderError("Ingresá un motivo de corrección de al menos cinco caracteres.");
     const [before] = await tx.select().from(workOrders).where(eq(workOrders.id, data.id)).for("update");

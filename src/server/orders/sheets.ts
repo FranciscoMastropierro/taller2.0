@@ -2,14 +2,14 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "../db";
 import { appUsers, customers, historicalOrders, orderSheets, workOrders } from "../db/schema";
-import { authorizeIdentity } from "../auth/service";
-import { OrderError, orderActor } from "./service";
+import { authorizeIdentity, authorizeActor } from "../auth/service";
+import { OrderError } from "./service";
 import { sheetRequestSchema, type SheetSnapshot } from "../../shared/contracts/sheets";
 
 export async function saveOrderSheet(db: Database, identity: unknown, input: unknown) {
   const data = sheetRequestSchema.parse(input);
   return db.transaction(async tx => {
-    const user = await orderActor(tx, identity);
+    const user = await authorizeActor(tx, identity);
     // El bloqueo evita capturar una revisión parcialmente actualizada.
     const [order] = await tx.select().from(workOrders).where(eq(workOrders.id, data.orderId)).for("share");
     if (!order) throw new OrderError("La orden no existe.");

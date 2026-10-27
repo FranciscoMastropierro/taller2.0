@@ -12,4 +12,5 @@ GRANT SELECT, INSERT ON public.order_events TO galante_runtime;
 GRANT SELECT ON public.import_sources TO galante_runtime;
 GRANT SELECT, UPDATE (continued_order_id) ON public.historical_orders TO galante_runtime;
 GRANT SELECT, INSERT ON public.order_sheets TO galante_runtime;
+GRANT SELECT, INSERT ON public.account_entries TO galante_runtime;
 -- Sin DELETE, TRUNCATE, CREATE ni acceso al esquema drizzle de migraciones.

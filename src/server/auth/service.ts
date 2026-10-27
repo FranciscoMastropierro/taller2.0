@@ -41,6 +41,18 @@ export async function authorizeIdentity(db: Database, identity: unknown, permiss
   return user;
 }
 
+// Validación y bloqueo de actor compartidos por comandos transaccionales.
+type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
+export async function authorizeActor(tx: Transaction, identity: unknown, permission: Permission = "work:read") {
+  const parsed = identitySchema.safeParse(identity);
+  if (!parsed.success) throw new AccessError(401);
+  const [user] = await tx.select({ id: appUsers.id, role: appUsers.role }).from(appUsers)
+    .where(and(eq(appUsers.id, parsed.data.id), eq(appUsers.sessionVersion, parsed.data.sessionVersion), eq(appUsers.active, 1))).for("share");
+  if (!user) throw new AccessError(401);
+  if (!isAppRole(user.role) || !can(user.role, permission)) throw new AccessError(403);
+  return user;
+}
+
 // Comandos administrativos locales. No hay endpoint público ni alta anónima.
 export async function createInitialAdmin(db: Database, input: { username: string; password: string; displayName: string }) {
   const username = loginSchema.shape.username.parse(input.username);

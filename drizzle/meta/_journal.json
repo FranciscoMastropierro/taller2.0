@@ -29,6 +29,13 @@
       "when": 1793124353630,
       "tag": "0003_curious_the_hunter",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793137212737,
+      "tag": "0004_shiny_sandman",
+      "breakpoints": true
     }
   ]
 }

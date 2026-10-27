@@ -82,3 +82,9 @@ Cargada la SQLite indicada por el usuario en la base local: **8.421 clientes y 3
 Verificación: 9 unitarias, 26 casos de integración y 6 E2E correctos; lint/typecheck/build correctos. Reimportación idempotente y comparación completa SQLite/PostgreSQL por runtime: cero diferencias. PDF sintético de una página 15 × 20 cm renderizado e inspeccionado. Calibración con impresora física pendiente.
 
 Cuenta corriente/aperturas conciliadas, cobros/anticipos, cheques y remitos/reportes continúan en entregas separadas. ARCA espera confirmación de modalidad fiscal, comprobantes y punto de venta. Sin despliegue ni apertura automática de deuda.
+
+## Cuenta corriente — 27/10/2026
+
+Implementada tarea 008: libro inmutable de aperturas por cliente, origen único, importes exactos, conciliación explícita y actor auditado. Ruta Cuenta corriente desde cliente: pendiente, crédito disponible y saldo neto separados. Administración registra aperturas; recepción consulta. Se conserva la cuenta vacía para los clientes importados hasta revisión real; no se cargaron deudas desde trabajos/facturas de SQLite.
+
+Migración local y grants aplicados. Correctos lint/typecheck/build, 11 unitarias, 32 casos de integración y 7 E2E. Cobros/aplicaciones, cheques, remitos/reportes y ARCA permanecen pendientes.
