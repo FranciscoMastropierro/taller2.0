@@ -3,20 +3,12 @@ import { and, asc, count, desc, eq, getTableColumns, ilike, or, sql } from "driz
 import { z } from "zod";
 import type { Database } from "../db";
 import { appUsers, customers, orderEvents, workOrders } from "../db/schema";
-import { authorizeIdentity } from "../auth/service";
+import { authorizeIdentity, authorizeActor } from "../auth/service";
 import { AccessError, can } from "../auth/permissions";
 import { newOrderSchema, nextStatus, orderFieldsSchema, orderVersionSchema, statusChangeSchema, technicalSchema, type OrderStatus } from "../../shared/contracts/orders";
 
 type Transaction = Parameters<Parameters<Database["transaction"]>[0]>[0];
-const identitySchema = z.object({ id: z.uuid(), sessionVersion: z.number().int().positive() });
 export class OrderError extends Error {}
-async function actor(tx: Transaction, identity: unknown) {
-  const parsed = identitySchema.safeParse(identity);
-  if (!parsed.success) throw new AccessError(401);
-  const [user] = await tx.select({ id: appUsers.id, role: appUsers.role }).from(appUsers).where(and(eq(appUsers.id, parsed.data.id), eq(appUsers.sessionVersion, parsed.data.sessionVersion), eq(appUsers.active, 1))).for("share");
-  if (!user) throw new AccessError(401);
-  return user;
-}
 async function assignee(tx: Transaction, id: string | null) {
   if (!id) return;
   const [user] = await tx.select({ id: appUsers.id }).from(appUsers).where(and(eq(appUsers.id, id), eq(appUsers.active, 1), or(eq(appUsers.role, "technician"), eq(appUsers.role, "admin")))).for("share");
@@ -34,7 +26,7 @@ async function record(tx: Transaction, userId: string, kind: typeof orderEvents.
 export async function createOrder(db: Database, identity: unknown, input: unknown) {
   const data = newOrderSchema.parse(input);
   return db.transaction(async tx => {
-    const user = await actor(tx, identity);
+    const user = await authorizeActor(tx, identity);
     if (!can(user.role, "work:write")) throw new AccessError(403);
     const hash = createHash("sha256").update(JSON.stringify(data)).digest("hex");
     const [previous] = await tx.select({ id: workOrders.id, createdBy: workOrders.createdBy, creationHash: workOrders.creationHash }).from(workOrders).where(eq(workOrders.id, data.id));
@@ -60,7 +52,7 @@ export async function editOrder(db: Database, identity: unknown, input: unknown,
   const version = orderVersionSchema.parse(input);
   const fields = technical ? technicalSchema.parse(input) : orderFieldsSchema.parse(input);
   return db.transaction(async tx => {
-    const user = await actor(tx, identity);
+    const user = await authorizeActor(tx, identity);
     const [before] = await tx.select().from(workOrders).where(eq(workOrders.id, version.id)).for("update");
     if (!before) throw new OrderError("La orden no existe.");
     if (technical ? !can(user.role, "work:technical") || (user.role === "technician" && before.assignedTo !== user.id) : !can(user.role, "work:write")) throw new AccessError(403);
@@ -76,7 +68,7 @@ export async function editOrder(db: Database, identity: unknown, input: unknown,
 export async function changeOrderStatus(db: Database, identity: unknown, input: unknown, correction = false) {
   const data = statusChangeSchema.parse(input);
   return db.transaction(async tx => {
-    const user = await actor(tx, identity);
+    const user = await authorizeActor(tx, identity);
     if (!can(user.role, correction ? "work:correct" : "work:write")) throw new AccessError(403);
     if (correction && data.reason.length < 5) throw new OrderError("Ingresá un motivo de corrección de al menos cinco caracteres.");
     const [before] = await tx.select().from(workOrders).where(eq(workOrders.id, data.id)).for("update");
@@ -90,7 +82,9 @@ export async function changeOrderStatus(db: Database, identity: unknown, input: 
   });
 }
 
+const legacyNumber = sql<number | null>`(select legacy_number from historical_orders where continued_order_id = ${workOrders.id})`;
 const operationalColumns = {
+  legacyNumber,
   id: workOrders.id, number: workOrders.number, customerId: workOrders.customerId, equipment: workOrders.equipment, brand: workOrders.brand, model: workOrders.model, serialNumber: workOrders.serialNumber,
   intake: workOrders.intake, notes: workOrders.notes, location: workOrders.location, assignedTo: workOrders.assignedTo, diagnosis: workOrders.diagnosis, workDone: workOrders.workDone, workedMinutes: workOrders.workedMinutes,
   status: workOrders.status, version: workOrders.version, createdAt: workOrders.createdAt, updatedAt: workOrders.updatedAt,
@@ -107,10 +101,10 @@ export async function listOrders(db: Database, identity: unknown, filters: { q: 
     filters.status ? eq(workOrders.status, filters.status) : undefined,
     filters.customerId ? eq(workOrders.customerId, filters.customerId) : undefined,
     filters.location ? ilike(workOrders.location, location) : undefined,
-    filters.q ? or(ilike(customers.name, pattern), ilike(workOrders.equipment, pattern), ilike(workOrders.brand, pattern), ilike(workOrders.model, pattern), ilike(sql`${workOrders.number}::text`, pattern)) : undefined,
+    filters.q ? or(ilike(customers.name, pattern), ilike(workOrders.equipment, pattern), ilike(workOrders.brand, pattern), ilike(workOrders.model, pattern), ilike(sql`${workOrders.number}::text`, pattern), ilike(sql`${legacyNumber}::text`, pattern)) : undefined,
   );
   const [rows, [total]] = await Promise.all([
-    db.select({ id: workOrders.id, number: workOrders.number, customerId: workOrders.customerId, customerName: customers.name, equipment: workOrders.equipment, brand: workOrders.brand, model: workOrders.model, status: workOrders.status, location: workOrders.location, createdAt: workOrders.createdAt, technician: appUsers.displayName }).from(workOrders).innerJoin(customers, eq(customers.id, workOrders.customerId)).leftJoin(appUsers, eq(appUsers.id, workOrders.assignedTo)).where(filter).orderBy(desc(workOrders.number)).limit(25).offset((filters.page - 1) * 25),
+    db.select({ legacyNumber, id: workOrders.id, number: workOrders.number, customerId: workOrders.customerId, customerName: customers.name, equipment: workOrders.equipment, brand: workOrders.brand, model: workOrders.model, status: workOrders.status, location: workOrders.location, createdAt: workOrders.createdAt, technician: appUsers.displayName }).from(workOrders).innerJoin(customers, eq(customers.id, workOrders.customerId)).leftJoin(appUsers, eq(appUsers.id, workOrders.assignedTo)).where(filter).orderBy(desc(workOrders.number)).limit(25).offset((filters.page - 1) * 25),
     db.select({ count: count() }).from(workOrders).innerJoin(customers, eq(customers.id, workOrders.customerId)).where(filter),
   ]);
   return { rows, total: total.count };

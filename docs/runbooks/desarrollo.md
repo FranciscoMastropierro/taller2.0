@@ -13,7 +13,7 @@ Copy-Item .env.example .env.local
 
 Si `.env.local` ya existe, conservarlo: contiene el secreto local generado durante esta entrega. Completar las variables según `.env.example`. No compartir ese archivo. Generar AUTH_SECRET con 32 bytes aleatorios; AUTH_URL debe coincidir con origen y puerto. No habilitar confianza en headers de proxy sin configurar previamente el hosting.
 
-En este equipo ya existe el contenedor `galante-v2-dev-db`, publicado sólo en `127.0.0.1:55448`, con bases `galante_dev` y `galante_test`. Para volver a iniciarlo: `docker start galante-v2-dev-db`. Son datos sintéticos; no conectar fuentes del taller. El contenedor conserva sus datos mientras exista; no es un respaldo.
+En este equipo existe el contenedor `galante-v2-dev-db`, publicado sólo en `127.0.0.1:55448`, con bases `galante_dev` y `galante_test`. Para iniciarlo: `docker start galante-v2-dev-db`. Desde el 27/10/2026, por pedido del usuario, `galante_dev` contiene los clientes y trabajos recuperados de SQLite; `galante_test` continúa separada y usa fixtures sintéticas. El contenedor conserva datos mientras exista; no es un respaldo.
 
 Para reproducir en otro equipo, crear PostgreSQL vacío con usuario propietario y dos bases separadas. TEST_DATABASE_URL debe terminar en `_test`; integración crea registros sintéticos y un rol sin login para comprobar privilegios. El usuario de pruebas requiere capacidad de crear ese rol. No ejecutar pruebas contra producción.
 
@@ -32,6 +32,36 @@ En cada ambiente, crear rol runtime `galante_runtime` sin permisos de propietari
 En este equipo DATABASE_URL ya utiliza `galante_runtime` con grants limitados; MIGRATION_DATABASE_URL conserva el propietario para preparar la base. Antes de conectar Neon, recrear esa separación por ambiente. No se creó proyecto Neon, hosting ni credenciales externas en esta entrega.
 
 ## Verificar
+
+### Importación recuperada e impresión
+
+Fuente autorizada: `../outputs/sqlite/galante_analisis.sqlite`, abierta sólo para lectura. Migrar y ejecutar grants antes de importar. Usar un administrador activo existente para la auditoría; no se crean cuentas ni se solicitan contraseñas en argumentos.
+
+```powershell
+npm run import:legacy -- --source=../outputs/sqlite/galante_analisis.sqlite
+npm run import:legacy -- --source=../outputs/sqlite/galante_analisis.sqlite --apply --actor=USUARIO_ADMIN_EXISTENTE
+npm run import:legacy -- --source=../outputs/sqlite/galante_analisis.sqlite --verify
+```
+
+Sin `--apply`/`--verify` sólo valida fuente y cuenta registros. `--apply` usa MIGRATION_DATABASE_URL con transacción; un mismo hash retorna `already_imported`. Otra copia bajo el mismo origen se rechaza para no sobrescribir cambios. `--verify` usa DATABASE_URL runtime y compara cada original y vínculo; esperado 8.421 clientes, 31.233 órdenes y cero diferencias. Logs sin datos de clientes ni conexiones.
+
+En Clientes se busca también por código anterior. En Órdenes → Histórico se buscan fichas viejas, se imprimen directamente o se continúa una reparación abierta eligiendo cliente y estado. La continuidad usa el mismo UUID y conserva el número viejo; desde la bandeja actual se busca también por ese número. Presupuesto, tiempo y estados ambiguos no se infieren.
+
+Las fichas nuevas se preparan desde la orden y se reimprimen desde revisiones guardadas. Seleccionar papel personalizado **150 × 200 mm**, escala **100 %**, sin encabezados/pies del navegador. Talón al pie con número repetido. Probar márgenes reales con la impresora antes del uso operativo. Textos largos pueden continuar en páginas adicionales sin recortarse. PDF sintético de referencia en `test-results/ficha-15x20.pdf` después del E2E de histórico.
+
+### Cuenta, cobros y documentos
+
+Desde la ficha del cliente → **Cuenta corriente**. La copia importada no abrió saldos: administración registra aperturas revisadas con referencia única y respaldo; recepción consulta y opera cobros. Deuda pendiente, crédito disponible, saldo neto y cheques pendientes de cobro se muestran separados.
+
+**Registrar cobro o anticipo** admite efectivo, transferencia y cheques de terceros. Las aplicaciones a obligaciones se eligen explícitamente; sin aplicaciones se conserva crédito disponible. Para utilizar un anticipo, **Aplicar crédito sin nuevo cobro**. El recibo R conserva el contenido al emitirlo; el estado posterior se consulta en cuenta/cheque.
+
+En **Cheques**, registrar sólo depósito, acreditación o rechazo confirmados. No se ejecutan operaciones bancarias. El rechazo revierte ese instrumento y sus aplicaciones una vez, conservando otros componentes del cobro. No se importó la cartera antigua como vigente.
+
+Una orden ya entregada permite preparar **Constancia interna de entrega** (RI). Se vincula a su evento y no registra otra entrega/cobro. Reimpresión desde documentos guardados. El remito definitivo conserva la validación operativa/fiscal pendiente.
+
+En **Comprobantes → Reportes**, pendientes usa fecha de incorporación de la orden al nuevo sistema; deudores muestra posición actual; cobros muestra recibos y reversiones por fecha comercial. Impresión usa el mismo resultado y filtros. Consultas de más de 2.000 filas requieren acotar filtros. Ventas fiscales no se calcula desde recibos/aperturas: queda pendiente de facturas autorizadas.
+
+ARCA no está habilitada. Resolver modalidad, tipos, punto de venta y documentación oficial según tarea 012 antes del adaptador. No configurar producción ni emitir comprobantes reales para probar estos módulos internos.
 
 ```powershell
 npm run lint

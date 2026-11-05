@@ -1,0 +1,81 @@
+import { test, expect } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+import { Pool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { eq } from "drizzle-orm";
+import { getDatabaseUrl } from "../../src/server/env";
+import { appUsers, customers, historicalOrders, importSources, orderEvents, orderSheets, workOrders } from "../../src/server/db/schema";
+import { hashPassword } from "../../src/server/auth/password";
+
+const pool = new Pool({ connectionString: getDatabaseUrl("TEST_DATABASE_URL") });
+const db = drizzle(pool);
+const suffix = randomUUID().slice(0, 8);
+const password = randomUUID();
+const number = 800000000 + Math.floor(Math.random() * 100000000);
+let actorId: string;
+let customerId: string;
+let sourceId: string;
+let historyId: string;
+test.beforeAll(async () => {
+  const [actor] = await db.insert(appUsers).values({ username: `history.browser.${suffix}`, displayName: "Administración sintética", role: "reception", passwordHash: await hashPassword(password) }).returning();
+  actorId = actor.id;
+  const [customer] = await db.insert(customers).values({ name: `Cliente histórico ${suffix}`, address: "Calle de prueba 123", phone: "555 0100", legacyOriginal: { localidad: "Localidad sintética" }, createdBy: actorId, updatedBy: actorId }).returning();
+  customerId = customer.id;
+  const [source] = await db.insert(importSources).values({ namespace: `browser.${suffix}`, sha256: "f".repeat(64), customerCount: 1, orderCount: 1, createdBy: actorId }).returning();
+  sourceId = source.id;
+  const [history] = await db.insert(historicalOrders).values({ sourceId, legacyNumber: number, customerId, original: { marca: "Motor sintético", modelo: "3 HP", descripcion_ingreso: "Poner en marcha. Hace mucho que no se usa.", fecha_ingreso: "2025-02-20T00:00:00", estado_original: "PROCESO", tiempo_original: "Sin unidad confirmada" } }).returning();
+  historyId = history.id;
+});
+test.afterAll(async () => {
+  if (historyId) {
+    await db.delete(orderSheets).where(eq(orderSheets.orderId, historyId));
+    await db.delete(historicalOrders).where(eq(historicalOrders.id, historyId));
+    await db.delete(orderEvents).where(eq(orderEvents.orderId, historyId));
+    await db.delete(workOrders).where(eq(workOrders.id, historyId));
+  }
+  if (sourceId) await db.delete(importSources).where(eq(importSources.id, sourceId));
+  if (customerId) await db.delete(customers).where(eq(customers.id, customerId));
+  if (actorId) await db.delete(appUsers).where(eq(appUsers.id, actorId));
+  await pool.end();
+});
+
+test("histórico: buscar, continuar una sola identidad e imprimir ficha con talón", async ({ page }) => {
+  await page.goto("/ordenes/historico");
+  await expect(page).toHaveURL(/ingresar/);
+  await page.getByLabel("Usuario", { exact: true }).fill(`history.browser.${suffix}`);
+  await page.getByLabel("Contraseña", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Ingresar al taller" }).click();
+  await expect(page.getByRole("heading", { name: "Bienvenido al taller." })).toBeVisible();
+  await page.goto(`/ordenes/historico?q=${number}`);
+  await page.getByRole("link", { name: new RegExp(`Ficha anterior #${number}`) }).click();
+  await expect(page.getByRole("heading", { name: `Ficha anterior #${number}` })).toBeVisible();
+  await page.getByRole("link", { name: "Imprimir ficha anterior" }).click();
+  await expect(page.getByTestId("sheet-number")).toHaveText([String(number), String(number)]);
+  await expect(page.getByRole("article")).toContainText("Sin unidad confirmada");
+  expect((await db.select().from(workOrders).where(eq(workOrders.id, historyId))).length).toBe(0);
+  await page.goto(`/ordenes/historico/${historyId}`);
+  await page.getByLabel("Estado confirmado").selectOption("completed");
+  await page.getByRole("button", { name: "Continuar reparación" }).click();
+  await expect(page).toHaveURL(new RegExp(`/ordenes/${historyId}$`));
+  await expect(page.getByText("TERMINADO", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: "Ficha de ingreso", exact: true }).click();
+  await expect(page).toHaveURL(/\/fichas\//);
+  const sheetUrl = page.url();
+  await expect(page.getByTestId("sheet-number")).toHaveText([String(number), String(number)]);
+  await expect(page.getByRole("article")).toContainText("CORTAR Y COLOCAR EN EL EQUIPO");
+  await page.pdf({ path: "test-results/ficha-15x20.pdf", preferCSSPageSize: true, printBackground: true, displayHeaderFooter: false });
+  await page.emulateMedia({ media: "print" });
+  await expect(page.getByRole("button", { name: "Imprimir ficha" })).toBeHidden();
+  await page.screenshot({ path: "test-results/ficha-15x20-impresion.png", fullPage: true });
+  await page.emulateMedia({ media: "screen" });
+  await db.update(customers).set({ name: "Nombre cambiado después de imprimir" }).where(eq(customers.id, customerId));
+  await page.reload();
+  await expect(page.getByRole("article")).toContainText(`Cliente histórico ${suffix}`);
+  await page.goto(`/ordenes?q=${number}`);
+  await expect(page.getByRole("link", { name: new RegExp(`anterior #${number}`) })).toHaveCount(1);
+  await page.goto(`/ordenes/historico?q=${number}`);
+  await expect(page.getByText("No encontramos órdenes anteriores.")).toBeVisible();
+  await page.context().clearCookies();
+  await page.goto(sheetUrl);
+  await expect(page).toHaveURL(/ingresar/);
+});

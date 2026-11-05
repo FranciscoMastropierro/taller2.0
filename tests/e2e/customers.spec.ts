@@ -65,13 +65,8 @@ test("clientes: alta, búsqueda, edición, conflicto y permisos de consulta", as
   await page.getByLabel("Dirección", { exact: true }).fill("Cambio sin permiso");
   await page.getByRole("button", { name: "Guardar cliente" }).click();
   await expect(page.getByRole("alert").filter({ hasText: "no tenés permisos" })).toContainText("no tenés permisos");
-  await page.goto("/clientes");
-  await page.reload();
-  await expect(page.getByRole("link", { name: "Nuevo cliente" })).toHaveCount(0);
-  await page.goto(`${detailUrl}?editar=1`);
-  await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Guardar cliente" })).toHaveCount(0);
-  await expect(page.getByText("Dirección actualizada", { exact: true })).toBeVisible();
-  await page.goto("/clientes/nuevo");
-  await expect(page.getByRole("alert").filter({ hasText: "acceso de consulta" })).toContainText("acceso de consulta");
+  for (const route of ["/clientes", `${detailUrl}?editar=1`, "/clientes/nuevo"]) {
+    await page.goto(route);
+    await expect(page).toHaveURL(/ingresar/);
+  }
 });

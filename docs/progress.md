@@ -65,4 +65,43 @@ Verificación ejecutada:
 
 App dejada ejecutándose localmente en puerto 3000. Base de desarrollo sin cuenta por defecto: el responsable crea su usuario con `npm run admin -- bootstrap`, por terminal y con contraseña oculta. La cuenta sintética de pruebas vive sólo en base de pruebas.
 
-Próximo entregable: `docs/tasks/003a-offline.md`. Offline, clientes, órdenes, importador, finanzas y ARCA no se consideran implementados. El equipo real, privilegios en Neon, hosting y producción conservan sus gates por etapa.
+## Acceso administrativo — 26/10/2026
+
+Fase 1 de tarea 006 implementada en `feat/acceso-administrativo`: sólo admin/reception pueden autenticar y autorizar sesiones o escribir órdenes. Los roles históricos conservan sus datos pero no tienen permisos de aplicación. Recepción conserva sus límites de corrección y gestión de cuentas.
+
+Verificación: lint, typecheck, 7 unitarias, 21 casos de integración PostgreSQL, build y 5 E2E correctos. Inspección visual de escritorio/móvil realizada. Detalles y archivos modificados en `docs/tasks/006-continuidad-administrativa.md`. Cheques, Comprobantes y demás entregas de fase 2 siguen pendientes. Sin despliegue.
+
+La referencia anterior a `003a-offline.md` queda sustituida por las entregas online de tareas 004–007; offline fue retirado del alcance.
+
+## Impresión e histórico — 27/10/2026
+
+Ficha de ingreso/trabajo según formato anterior, papel **15 × 20 cm**, número repetido en talón para cortar y pegar al equipo. Snapshots inmutables por revisión; reimpresión sin movimientos ni cambios de estado. Impresión directa de históricos sin reabrirlos.
+
+Cargada la SQLite indicada por el usuario en la base local: **8.421 clientes y 31.233 órdenes**. Clientes reutilizables con código anterior, originales íntegros y sin fusiones por nombre. Histórico paginado, búsqueda por número viejo y continuidad explícita de reparaciones abiertas conservando UUID y número anterior. Referencias huérfanas se mantienen sin inventar clientes. No se convierten estados ambiguos, tiempos ni presupuestos automáticamente.
+
+Verificación: 9 unitarias, 26 casos de integración y 6 E2E correctos; lint/typecheck/build correctos. Reimportación idempotente y comparación completa SQLite/PostgreSQL por runtime: cero diferencias. PDF sintético de una página 15 × 20 cm renderizado e inspeccionado. Calibración con impresora física pendiente.
+
+Cuenta corriente/aperturas conciliadas, cobros/anticipos, cheques y remitos/reportes continúan en entregas separadas. ARCA espera confirmación de modalidad fiscal, comprobantes y punto de venta. Sin despliegue ni apertura automática de deuda.
+
+## Cuenta corriente — 27/10/2026
+
+Implementada tarea 008: libro inmutable de aperturas por cliente, origen único, importes exactos, conciliación explícita y actor auditado. Ruta Cuenta corriente desde cliente: pendiente, crédito disponible y saldo neto separados. Administración registra aperturas; recepción consulta. Se conserva la cuenta vacía para los clientes importados hasta revisión real; no se cargaron deudas desde trabajos/facturas de SQLite.
+
+Migración local y grants aplicados. Correctos lint/typecheck/build, 11 unitarias, 32 casos de integración y 7 E2E. Cobros/aplicaciones, cheques, remitos/reportes y ARCA permanecen pendientes.
+
+## Cobros y recibos — 27/10/2026
+Tarea 009 implementada: cobros en efectivo/transferencia, anticipos, componentes, aplicaciones parciales a varias obligaciones y uso de crédito disponible sin nuevo cobro. UUID/hash y bloqueo de cliente para reintentos/concurrencia. Recibo interno R con snapshot inmutable e impresión; Comprobantes permite consultarlos. Ningún recibo emite una factura.
+
+Migración/grants aplicados, sin cobros reales. Gate correcto: 11 unitarias, 37 casos de integración, 8 E2E, lint/typecheck/build. Cheques, remitos/reportes y ARCA siguen pendientes.
+
+## Cheques de terceros — 27/10/2026
+Tarea 010 implementada: recepción vinculada a componente de cobro, cartera, depósito, acreditación, rechazo e historial versionado. Rechazo revierte una sola vez el crédito y aplicaciones del instrumento; efectivo y otros componentes se conservan. Depósito/acreditación no agregan crédito. Banco/cuenta/número previenen duplicación; sin integración bancaria ni importación automática de cartera anterior.
+
+Correctos 11 unitarias, 43 casos de integración y 9 E2E, lint/typecheck/build. Migración/grants locales aplicados y captura sintética revisada. No se recibieron ni operaron instrumentos reales. Remitos/reportes y ARCA siguen pendientes.
+
+## Constancias y reportes — cierre 27/10/2026
+Tarea 011 implementada: constancia interna de entrega RI, vinculada a evento y snapshot, sin volver a entregar/cobrar. Comprobantes consulta recibos y constancias; reportes de pendientes, deudores actuales y cobros comerciales imprimen los mismos resultados/filtros. Cobros se separa de ventas fiscales; las reversiones de cheques afectan el neto comercial del período.
+
+Gate final: **11 unitarias, 49 casos de integración, 9 E2E**, lint/typecheck/build correctos. PDF de ficha 15 × 20 cm, capturas de constancia y reporte inspeccionados. Fuente recuperada verificada completa después de las migraciones: cero diferencias en 8.421 clientes/31.233 órdenes. Base local sin asientos/recibos/cheques/constancias de prueba; sólo se cargaron clientes y trabajos.
+
+Pendiente externo: conciliación de aperturas/cartera reales, impresión física, remito definitivo y modalidad/tipos/punto de venta para ARCA. No hay adaptador ni emisión fiscal; ventas fiscales no se simula con recibos. Tarea 012 registra las precondiciones. Sin despliegue ni corte productivo.

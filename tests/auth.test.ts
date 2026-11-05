@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { can } from "../src/server/auth/permissions";
+import { can, type Permission } from "../src/server/auth/permissions";
 import { hashPassword, verifyPassword } from "../src/server/auth/password";
 import { loginSchema } from "../src/shared/contracts/auth";
 import { getDatabaseUrl } from "../src/server/env";
@@ -29,4 +29,14 @@ test("conexión remota sin TLS rechazada sin revelar URL", () => {
     process.env.DATABASE_URL = "postgresql://secret:password@remote.example/db";
     assert.throws(() => getDatabaseUrl(), { message: "Configuración inválida: DATABASE_URL" });
   } finally { if (previous === undefined) delete process.env.DATABASE_URL; else process.env.DATABASE_URL = previous; }
+});
+
+test("only administrative roles have application permissions", () => {
+  const permissions: Permission[] = ["work:read", "work:write", "work:correct", "work:technical", "customers:write", "finance:read", "finance:write", "users:manage"];
+  for (const permission of permissions) {
+    assert.equal(can("technician", permission), false, permission);
+    assert.equal(can("readonly", permission), false, permission);
+    assert.equal(can("admin", permission), true, permission);
+    assert.equal(can("reception", permission), ["work:read", "work:write", "customers:write", "finance:read", "finance:write"].includes(permission), permission);
+  }
 });

@@ -32,6 +32,7 @@ test.beforeAll(async () => {
 test.afterAll(async () => {
   if (customer) {
     const orders = await db.select({ id: workOrders.id }).from(workOrders).where(eq(workOrders.customerId, customer.id));
+    if (orders.length) await db.delete(schema.deliveryNotes).where(inArray(schema.deliveryNotes.orderId, orders.map(order => order.id)));
     if (orders.length) await db.delete(orderEvents).where(inArray(orderEvents.orderId, orders.map(order => order.id)));
     await db.delete(workOrders).where(eq(workOrders.customerId, customer.id));
     await db.delete(customers).where(eq(customers.id, customer.id));
@@ -92,6 +93,14 @@ test("órdenes: ingreso desde cliente, búsqueda, conflicto, terminación, entre
   await page.getByRole("button", { name: "Confirmar entrega", exact: true }).click();
   await expect(page.getByText("ENTREGADO", { exact: true }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Editar orden", exact: true })).toHaveCount(0);
+  await page.getByText("Constancia interna de entrega", { exact: true }).click();
+  await page.getByLabel("Persona que retiró").fill("Retirante de prueba");
+  await page.getByRole("button", { name: "Guardar constancia interna" }).click();
+  await expect(page).toHaveURL(/\/comprobantes\/remitos\//);
+  await expect(page.getByRole("article")).toContainText(equipment);
+  await expect(page.getByRole("article")).toContainText("Retirante de prueba");
+  await page.screenshot({ path: "test-results/constancia-entrega.png", fullPage: true });
+  await page.goto(detailUrl);
   await page.getByText("Corregir estado", { exact: true }).click();
   await page.getByLabel("Estado corregido").selectOption("completed");
   await page.getByLabel("Motivo de corrección").fill("El cliente aún no retiró el equipo");
@@ -103,26 +112,13 @@ test("órdenes: ingreso desde cliente, búsqueda, conflicto, terminación, entre
   await page.screenshot({ path: "test-results/ordenes-ficha-movil.png", fullPage: true });
 });
 
-test("técnico: campos técnicos, presupuesto oculto y pérdida de acceso al desasignar", async ({ page }) => {
-  test.setTimeout(90000);
-  await login(page, tech.username);
+test("historical technician cannot login or read assigned order", async ({ page }) => {
   await page.goto(`/ordenes/${seededId}`);
-  await expect(page.getByRole("heading", { name: `Equipo técnico ${suffix}` })).toBeVisible();
+  await expect(page).toHaveURL(/ingresar/);
+  await page.getByLabel("Usuario", { exact: true }).fill(tech.username);
+  await page.getByLabel("Contrase\u00f1a", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Ingresar al taller" }).click();
+  await expect(page.getByRole("alert")).toBeVisible();
   expect(await page.content()).not.toContain(hiddenBudget);
   expect(await page.content()).not.toContain("EVIDENCIA_PRIVADA_NO_VISIBLE");
-  await expect(page.getByRole("button", { name: "Marcar terminado" })).toHaveCount(0);
-  await page.getByRole("link", { name: "Actualizar seguimiento", exact: true }).click();
-  await expect(page.getByLabel("Presupuesto estimado (ARS)")).toHaveCount(0);
-  await expect(page.getByLabel("Técnico asignado", { exact: true })).toHaveCount(0);
-  await page.getByLabel("Diagnóstico", { exact: true }).fill("Revisión técnica completa");
-  await page.getByLabel("Tiempo trabajado acumulado (minutos)").fill("25");
-  await page.getByRole("button", { name: "Guardar orden", exact: true }).click();
-  await expect(page.getByRole("status")).toContainText("Orden guardada", { timeout: 20000 });
-  await expect(page.getByText("25 minutos acumulados", { exact: true })).toBeVisible();
-  await db.update(workOrders).set({ assignedTo: null }).where(eq(workOrders.id, seededId));
-  const response = await page.goto(`/ordenes/${seededId}`);
-  expect(response?.status()).toBe(404);
-  await page.goto(`/ordenes?q=${encodeURIComponent(`Equipo técnico ${suffix}`)}`);
-  await expect(page.getByRole("heading", { name: "No hay órdenes para mostrar" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Nueva orden", exact: true })).toHaveCount(0);
 });

@@ -1,5 +1,17 @@
 # Decisiones — 21/10/2026
 
+## Impresión e histórico — 27/10/2026
+
+- Usuario autoriza usar la SQLite recuperada para cargar la nueva BD y confirma formato de ficha anterior. Se conserva la distribución de la foto; papel físico no identificado, tamaño automático en diálogo y ensayo físico pendiente.
+- Importación de clientes/histórico primero; no importar saldos ni inferir deuda de esta copia. Los estados ambiguos permanecen originales; continuar requiere selección administrativa de estado/cliente. No convertir tiempos anteriores a minutos.
+- Identidad por fuente/código anterior, nunca por nombre; SHA fija la copia. Reimportación diferente se rechaza y requiere contrato de actualización. Reintento idéntico no pisa ediciones nuevas.
+- 42 clientes sin nombre reciben rótulo explícito de dato faltante. Se conserva JSON original completo. Órdenes huérfanas se consultan y requieren cliente real para continuar, sin fabricar clientes.
+- Fichas: snapshot inmutable por revisión y tipo, sin nueva secuencia fiscal. Número anterior e interno se distinguen; reimpresión no entrega, cobra ni altera orden.
+- Medidas confirmadas después: 15 cm ancho × 20 cm alto, número repetido arriba/al pie para cortar y pegar en el equipo. CSS fija ese papel, margen de 8 mm; calibración real pendiente. PDF sintético y render en test-results (no versionados).
+- Impresión directa de históricos sin promoverlos; una reparación entregada no debe reabrirse sólo para reimprimir. Presupuesto/tiempo antiguos se muestran literalmente.
+- Node SQLite entrega objetos sin prototipo; Drizzle los rechaza como valores JSON. Normalizar objetos al leer y en la frontera del importador. Intentos fallidos revertidos; regresión con objetos sin prototipo en integración.
+- Modalidad ARCA, tipos y punto de venta no confirmados por el usuario. No activar emisión ni elegir impresora fiscal/servicios web por suposición.
+
 ## Clientes — 22/10/2026
 
 - Pedido vigente: retirar guardado offline y avanzar por módulos online; etapa 3A deja de ser requisito. Los planes originales quedan como antecedentes.
@@ -40,3 +52,51 @@
 - Cuatro tarjetas fijas: Clientes, Órdenes de trabajo, Cheques y Comprobantes; estas últimas agrupan cartera, remitos/listados y ARCA, con funciones pendientes.
 - Esta entrega crea estructura visual y actualiza el plan. No modifica roles persistidos ni borra referencias a usuarios/asignaciones existentes; la restricción efectiva de perfiles anteriores queda especificada en tarea 006 para el siguiente agente.
 - Las pantallas pendientes usan el permiso existente finance:read para no abrir nuevas superficies financieras a perfiles antiguos. No hay importes de ejemplo, cobros simulados ni botones de emisión activos.
+
+## Acceso administrativo — fase 1 — 26/10/2026
+
+- Rama feat/acceso-administrativo desde main limpio (el estado real difiere del antecedente de la tarea).
+- Perfiles excluidos con identidad vigente reciben FORBIDDEN (403); identidad inválida/inactiva/versionada sigue UNAUTHORIZED (401), conservando convenciones de cada entrada.
+- Asignaciones técnicas históricas y su validación permanecen como datos operativos. No se crean cuentas ni se cambian enum, hashes o filas existentes para restringir el acceso.
+- El seguimiento técnico interno conserva su contrato para administración; las pruebas válidas pasan a admin y las identidades técnicas se prueban como denegadas.
+
+## Cuenta corriente — 27/10/2026
+
+- Entrega separada de fichas/histórico (commit 9764b20). Aperturas manuales sólo admin, con respaldo y confirmación de conciliación; recepción consulta. No se agregan saldos desde la fuente recuperada.
+- Libro inmutable con origen único global, UUID estable y hash canónico para reintentos. Sólo ARS. Deuda pendiente/crédito disponible se mantienen separados hasta aplicaciones explícitas.
+- La validación transaccional del actor se comparte en auth/service como authorizeActor; conserva bloqueo de usuario, activo, perfil y sessionVersion, sin depender del módulo de órdenes.
+
+## Cobros y recibos — 27/10/2026
+
+- Entrega separada de aperturas (afdfd09). finance:write habilita cobros/aplicaciones para admin/reception; apertura sigue sólo admin y users:manage no cambia.
+- Aplicaciones explícitas por obligación; distribución entre componentes en orden declarado, persistida para poder revertir sólo un cheque en la etapa siguiente. No compensar automáticamente anticipos.
+- Recibo interno R con snapshot inmutable; no es factura ni comprobante fiscal. Créditos y aplicaciones no recrean cobros. No se registran pagos reales como prueba.
+- Las aplicaciones requieren calificar `account_entries.id` en la subconsulta correlacionada; `id` sin tabla se vinculaba a la fila de aplicación y devolvía pendientes incorrectos. Los casos F2/F3 y sobreaplicación lo detectaron; corregido antes de la carga local.
+
+## Cheques de terceros — 27/10/2026
+
+- Entrega separada de cobros (db15ec9). Instrumentos nuevos se reciben exclusivamente mediante componente de cobro; no importar cartera antigua como actual. Banco/cuenta libradora/número identifican instrumento, sin catálogos nuevos.
+- Estado bancario confirmado manualmente; la app no deposita ni consulta bancos. Rechazo desde cartera/depósito/acreditado es terminal y revierte sólo ese crédito/aplicaciones, con un movimiento contable inmutable.
+- Aplicaciones originales no se borran: se consideran inactivas cuando su componente tiene reversión. Recibo conserva snapshot inicial y enlaza al estado vigente del cheque.
+
+## Constancias y reportes — 27/10/2026
+
+- Entrega separada de cheques (7ad139b). Remito interno/constancia vinculada a evento de entrega, sin generar otra entrega ni cobro. Remito definitivo permanece sujeto a validación operativa/fiscal prevista; no se presenta como factura.
+- Reporte de pendientes usa fecha de incorporación al nuevo sistema, no fecha antigua inferida. Deudores: neto positivo actual, pendiente/crédito separados; no reconstruir saldos a una fecha arbitraria. Cobros: recibos brutos y reversiones por fecha comercial, diferenciados de ventas y fondos bancarios.
+- Impresión del mismo DOM conserva registros/filtros. Si supera 2.000 filas se exige acotar la consulta, sin recorte silencioso. Ventas fiscales sigue pendiente por ausencia de facturas autorizadas.
+
+- Lecturas de cuenta e historial de cheque usan transacción repeatable read de sólo lectura: totales, cartera y movimientos corresponden al mismo corte aun con un cobro/rechazo concurrente. Los comandos mantienen bloqueo de cliente.
+
+- Revisión de continuidad: una ficha cuyo estado original es explícitamente ENTREGADO se consulta/imprime, pero no se promueve como reparación abierta. Backend y UI lo deniegan; otra reparación usa nueva orden. Los estados ambiguos no se reinterpretan.
+
+- UUID de comandos financieros y constancias se fija en estado del componente para conservarlo tras errores/rerenders. Al confirmar una apertura/aplicación se reinicia el ciclo de formulario con token de resultado en URL; un error conserva valores e identidad. E2E cobra tras corregir una sobreaplicación y verifica el mismo UUID.
+
+## Triage de decisiones del 27/10
+
+- Spec bug (006 → 007): papel/escala/talón no estaban cerrados; incorporadas medidas confirmadas por usuario y margen explícito. Identidad nueva/anterior se distingue y el original se conserva. Estados ambiguos no se infieren; prohibición de continuar ENTREGADO explicitada en 007.
+- Spec bug (006 → 008): apertura sin política granular de escritura; resuelto como admin con conciliación explícita, recepción consulta. Lectura coherente de saldo/cartera/historial faltaba en 008; incorporada transacción repeatable read.
+- Spec bug (006 → 009/010): faltaban distribución por componente, identidad física de cheque y reglas de reversión. Contratos separados fijan orden declarado, banco/cuenta/número y reversión inmutable sin borrar aplicaciones.
+- Spec bug (006 → 011/012): pendientes no definía fecha, deudores no definía corte y ventas carecía de facturas. Resueltos incorporación/posición actual/cobros comerciales; ARCA y ventas fiscales pendientes de información, no simulados.
+- Executor bug: valores JSON SQLite de prototipo nulo, nombre de un carácter y correlación SQL no calificada; corregidos y cubiertos con carga real o integración/unitarias.
+- Executor bug: UUID sólo en props no garantizaba estabilidad tras rerender; fijado en estado y probado tras error. Páginas CSS globales podían competir al navegar; aisladas por nombre y PDF revalidado.
+- Executor bug: paralelizar consultas sobre una misma conexión pg emitió deprecación; consultas secuenciales dentro del snapshot. Sin brecha de doctrina identificada ni cambios a skills del usuario.

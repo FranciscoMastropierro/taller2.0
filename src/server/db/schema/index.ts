@@ -1,6 +1,9 @@
 import { check, index, integer, jsonb, numeric, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { roles } from "../../../shared/contracts/auth";
+import type { SheetSnapshot } from "../../../shared/contracts/sheets";
+import type { ReceiptSnapshot } from "../../../shared/contracts/payments";
+import type { DeliverySnapshot } from "../../../shared/contracts/documents";
 export const appRole = pgEnum("app_role", roles);
 export const appUsers = pgTable("app_users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -34,6 +37,8 @@ export const customers = pgTable("customers", {
   email: text("email").default("").notNull(),
   address: text("address").default("").notNull(),
   notes: text("notes").default("").notNull(),
+  legacyCode: integer("legacy_code").unique(),
+  legacyOriginal: jsonb("legacy_original").$type<Record<string, unknown>>(),
   version: integer("version").default(1).notNull(),
   createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
   updatedBy: uuid("updated_by").references(() => appUsers.id).notNull(),
@@ -85,3 +90,93 @@ export const orderEvents = pgTable("order_events", {
   after: jsonb("after").$type<Record<string, unknown>>().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, t => [unique("order_event_version_unique").on(t.orderId, t.version), check("order_event_kind_valid", sql`${t.kind} IN ('created', 'edited', 'technical', 'status', 'correction')`)]);
+
+export const importSources = pgTable("import_sources", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  namespace: text("namespace").notNull().unique(),
+  sha256: text("sha256").notNull(),
+  customerCount: integer("customer_count").notNull(),
+  orderCount: integer("order_count").notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export const historicalOrders = pgTable("historical_orders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  sourceId: uuid("source_id").references(() => importSources.id).notNull(),
+  legacyNumber: integer("legacy_number").notNull().unique(),
+  customerId: uuid("customer_id").references(() => customers.id),
+  original: jsonb("original").$type<Record<string, unknown>>().notNull(),
+  continuedOrderId: uuid("continued_order_id").references(() => workOrders.id).unique(),
+}, t => [index("historical_customer_idx").on(t.customerId)]);
+
+export const orderSheets = pgTable("order_sheets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orderId: uuid("order_id").references(() => workOrders.id).notNull(),
+  orderVersion: integer("order_version").notNull(),
+  kind: text("kind", { enum: ["intake", "work"] }).notNull(),
+  snapshot: jsonb("snapshot").$type<SheetSnapshot>().notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, t => [unique("sheet_order_version_kind_unique").on(t.orderId, t.orderVersion, t.kind), check("sheet_kind_valid", sql`${t.kind} IN ('intake', 'work')`)]);
+
+export const accountEntries = pgTable("account_entries", {
+  id: uuid("id").primaryKey(),
+  customerId: uuid("customer_id").references(() => customers.id).notNull(),
+  kind: text("kind", { enum: ["opening_debt", "opening_credit", "payment_credit", "credit_reversal"] }).notNull(),
+  sourceKey: text("source_key").notNull().unique(),
+  reference: text("reference").notNull(),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+  businessDate: text("business_date").notNull(),
+  evidence: text("evidence").notNull(),
+  payloadHash: text("payload_hash").notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, t => [index("account_customer_idx").on(t.customerId), check("account_amount_positive", sql`${t.amount} > 0`), check("account_kind_valid", sql`${t.kind} IN ('opening_debt', 'opening_credit', 'payment_credit', 'credit_reversal')`)]);
+
+export const applicationBatches = pgTable("application_batches", {
+  id: uuid("id").primaryKey(), customerId: uuid("customer_id").references(() => customers.id).notNull(),
+  payloadHash: text("payload_hash").notNull(), createdBy: uuid("created_by").references(() => appUsers.id).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export const creditApplications = pgTable("credit_applications", {
+  id: uuid("id").defaultRandom().primaryKey(), batchId: uuid("batch_id").references(() => applicationBatches.id).notNull(),
+  customerId: uuid("customer_id").references(() => customers.id).notNull(),
+  creditId: uuid("credit_id").references(() => accountEntries.id).notNull(), debtId: uuid("debt_id").references(() => accountEntries.id).notNull(),
+  amount: numeric("amount", { precision: 18, scale: 2 }).notNull(),
+}, t => [check("application_positive", sql`${t.amount} > 0`), unique("application_batch_pair").on(t.batchId, t.creditId, t.debtId), index("application_credit_idx").on(t.creditId), index("application_debt_idx").on(t.debtId)]);
+export const paymentReceipts = pgTable("payment_receipts", {
+  id: uuid("id").primaryKey(), number: integer("number").generatedAlwaysAsIdentity().notNull().unique(),
+  customerId: uuid("customer_id").references(() => customers.id).notNull(), payloadHash: text("payload_hash").notNull(),
+  total: numeric("total", { precision: 18, scale: 2 }).notNull(), businessDate: text("business_date").notNull(),
+  snapshot: jsonb("snapshot").$type<ReceiptSnapshot>().notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(), createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export const paymentComponents = pgTable("payment_components", {
+  id: uuid("id").primaryKey(), receiptId: uuid("receipt_id").references(() => paymentReceipts.id).notNull(),
+  creditId: uuid("credit_id").references(() => accountEntries.id).notNull().unique(), method: text("method", { enum: ["cash", "transfer", "cheque"] }).notNull(),
+});
+
+export const thirdPartyCheques = pgTable("third_party_cheques", {
+  id: uuid("id").primaryKey().references(() => paymentComponents.id),
+  customerId: uuid("customer_id").references(() => customers.id).notNull(), creditId: uuid("credit_id").references(() => accountEntries.id).notNull().unique(),
+  identityHash: text("identity_hash").notNull().unique(), bank: text("bank").notNull(), account: text("account").notNull(), number: text("number").notNull(), deliveredBy: text("delivered_by").notNull(),
+  issuedOn: text("issued_on").notNull(), payableOn: text("payable_on").notNull(),
+  status: text("status", { enum: ["received", "deposited", "credited", "rejected"] }).default("received").notNull(), version: integer("version").default(1).notNull(),
+}, t => [check("cheque_status_valid", sql`${t.status} IN ('received','deposited','credited','rejected')`), index("cheque_customer_idx").on(t.customerId), index("cheque_status_idx").on(t.status)]);
+export const chequeMovements = pgTable("cheque_movements", {
+  id: uuid("id").primaryKey(), chequeId: uuid("cheque_id").references(() => thirdPartyCheques.id).notNull(),
+  version: integer("version").notNull(), action: text("action").notNull(), fromStatus: text("from_status"), toStatus: text("to_status").notNull(),
+  businessDate: text("business_date").notNull(), reason: text("reason").notNull(), payloadHash: text("payload_hash").notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(), createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, t => [unique("cheque_movement_version_unique").on(t.chequeId, t.version)]);
+export const creditReversals = pgTable("credit_reversals", {
+  id: uuid("id").primaryKey().references(() => accountEntries.id), creditId: uuid("credit_id").references(() => accountEntries.id).notNull().unique(),
+  chequeId: uuid("cheque_id").references(() => thirdPartyCheques.id).notNull().unique(), movementId: uuid("movement_id").references(() => chequeMovements.id).notNull().unique(),
+});
+
+export const deliveryNotes = pgTable("delivery_notes", {
+  id: uuid("id").primaryKey(), number: integer("number").generatedAlwaysAsIdentity().notNull().unique(),
+  orderId: uuid("order_id").references(() => workOrders.id).notNull(), sourceEventId: uuid("source_event_id").references(() => orderEvents.id).notNull().unique(),
+  snapshot: jsonb("snapshot").$type<DeliverySnapshot>().notNull(), payloadHash: text("payload_hash").notNull(),
+  createdBy: uuid("created_by").references(() => appUsers.id).notNull(), createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
